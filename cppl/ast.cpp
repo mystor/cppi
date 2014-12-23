@@ -9,9 +9,6 @@
 #include "ast.h"
 #include <assert.h>
 
-ExprStmt::ExprStmt(Expr expr) : expr(expr) {
-}
-
 std::vector<Stmt> parse_stmts(Lexer *lex) {
 	std::vector<Stmt> stmts;
 	while (! lex->eof()) {
@@ -28,27 +25,28 @@ std::vector<Stmt> parse_stmts(Lexer *lex) {
 
 std::vector<Stmt> parse(Lexer *lex) {
 	auto stmts = parse_stmts(lex);
+	std::cout << lex->peek() << "\n";
 	assert(lex->eof() && "Expected end of file"); // TODO: Improve
 	return stmts;
 };
 
 Type parse_type(Lexer *lex) {
 	// TODO: Implement
-	return Type();
+	auto ident = lex->expect(TOKEN_IDENT)._data.ident;
+	return Type(ident);
 }
 
 Argument parse_argument(Lexer *lex) {
-	Argument arg;
 	auto ident = lex->expect(TOKEN_IDENT)._data.ident;
 	lex->expect(TOKEN_COLON);
-	arg.type = parse_type(lex);
-	arg.name = ident;
-	return arg;
+	return Argument(ident, parse_type(lex));
 }
 
 Stmt parse_stmt(Lexer *lex) {
 	auto first_type = lex->peek().type();
 	if (first_type == TOKEN_LET) {
+		std::cout << "Saw a LET\n";
+		lex->eat();
 		auto var = lex->expect(TOKEN_IDENT);
 		
 		auto next = lex->eat();
@@ -66,12 +64,7 @@ Stmt parse_stmt(Lexer *lex) {
 			lex->expect(TOKEN_RPAREN);
 			lex->expect(TOKEN_COLON);
 			// Optionally do a return type
-			Type type;
-			if (lex->peek().type() == TOKEN_COLON) {
-				type = TYPE_NULL;
-			} else {
-				type = parse_type(lex);
-			}
+			Type type = lex->peek().type() == TOKEN_COLON ? TYPE_NULL : parse_type(lex);
 			lex->expect(TOKEN_EQ);
 			lex->expect(TOKEN_LBRACE);
 			// Function body
@@ -97,6 +90,7 @@ Stmt parse_stmt(Lexer *lex) {
 	} else if (first_type == TOKEN_SEMI || first_type == TOKEN_RBRACE) {
 		return EMPTY_STMT;
 	} else {
+		std::cout << "Saw an expr\n";
 		return ExprStmt(parse_expr(lex));
 	}
 }
@@ -104,12 +98,15 @@ Stmt parse_stmt(Lexer *lex) {
 
 Expr parse_expr_val(Lexer *lex) {
 	auto tok_type = lex->peek().type();
+	std::cout << "This far?\n";
 	
 	switch (tok_type) {
 		case TOKEN_STRING: {
+			std::cout << "Here STRING?\n";
 			return StringExpr(lex->eat()._data.str_value);
 		}
 		case TOKEN_IDENT: {
+			std::cout << "Here IDENT?\n";
 			return IdentExpr(lex->eat()._data.ident);
 		}
 		case TOKEN_LPAREN: {
@@ -119,6 +116,7 @@ Expr parse_expr_val(Lexer *lex) {
 			return expr;
 		}
 		default: {
+			std::cout << "Here?\n";
 			assert(false && "Unrecognized expression");
 		}
 	}
@@ -126,6 +124,7 @@ Expr parse_expr_val(Lexer *lex) {
 
 Expr parse_expr_access(Lexer *lex) {
 	Expr expr = parse_expr_val(lex);
+	std::cout << "Got this far!";
 	for (;;) {
 		switch (lex->peek().type()) {
 			case TOKEN_LPAREN: {
@@ -160,6 +159,53 @@ Expr parse_expr_access(Lexer *lex) {
 	return expr;
 }
 
+Expr parse_expr_tdm(Lexer *lex) {
+	Expr expr = parse_expr_access(lex);
+	for (;;) {
+		switch (lex->peek().type()) {
+			case TOKEN_TIMES: {
+				lex->eat();
+				auto rhs = parse_expr_access(lex);
+				expr = InfixExpr(OPERATION_TIMES, expr, rhs);
+			} continue;
+			case TOKEN_DIVIDE: {
+				lex->eat();
+				auto rhs = parse_expr_access(lex);
+				expr = InfixExpr(OPERATION_DIVIDE, expr, rhs);
+			} continue;
+			case TOKEN_MODULO: {
+				lex->eat();
+				auto rhs = parse_expr_access(lex);
+				expr = InfixExpr(OPERATION_MODULO, expr, rhs);
+			} continue;
+			default: break;
+		}
+		break;
+	}
+	return expr;
+}
+
+Expr parse_expr_pm(Lexer *lex) {
+	Expr expr = parse_expr_tdm(lex);
+	for (;;) {
+		switch (lex->peek().type()) {
+			case TOKEN_PLUS: {
+				lex->eat();
+				auto rhs = parse_expr_access(lex);
+				expr = InfixExpr(OPERATION_PLUS, expr, rhs);
+			} continue;
+			case TOKEN_DIVIDE: {
+				lex->eat();
+				auto rhs = parse_expr_access(lex);
+				expr = InfixExpr(OPERATION_MINUS, expr, rhs);
+			} continue;
+			default: break;
+		}
+		break;
+	}
+	return expr;
+}
+
 Expr parse_expr(Lexer *lex) {
-	return parse_expr_access(lex);
+	return parse_expr_pm(lex);
 }

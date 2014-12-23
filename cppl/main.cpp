@@ -13,7 +13,7 @@
 
 int main(int argc, const char * argv[]) {
 	
-	auto inputString = "let abc(int def) : int = { 5 + 5 }";
+	auto inputString = "let abc(def : int) : int = { 5 + 5 }";
 	std::stringstream ss;
 	ss << inputString;
 	

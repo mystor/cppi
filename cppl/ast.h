@@ -14,12 +14,17 @@
 #include "lexer.h"
 
 class Type {
+public:
+	Type() { ident = intern("void"); };
+	Type(const char *ident) : ident(ident) {};
+	const char *ident;
 };
 
-const Type TYPE_NULL = Type();
+const Type TYPE_NULL = Type(intern("void"));
 
 class Argument {
 public:
+	Argument(const char *name, Type type) : name(name), type(type) {};
 	const char *name;
 	Type type;
 };
@@ -48,6 +53,22 @@ public:
 	const char *ident;
 };
 
+enum OperationType {
+	OPERATION_PLUS,
+	OPERATION_MINUS,
+	OPERATION_TIMES,
+	OPERATION_DIVIDE,
+	OPERATION_MODULO
+};
+
+class InfixExpr : public Expr {
+public:
+	InfixExpr(OperationType op, Expr lhs, Expr rhs) : op(op), lhs(lhs), rhs(rhs) {};
+	OperationType op;
+	Expr lhs;
+	Expr rhs;
+};
+
 class Stmt {
 };
 
@@ -67,7 +88,7 @@ public:
 
 class ExprStmt : public Stmt {
 public:
-	ExprStmt(Expr);
+	ExprStmt(Expr expr) : expr(expr) {};
 	Expr expr;
 };
 

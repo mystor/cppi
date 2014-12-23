@@ -19,6 +19,12 @@ enum TokenType {
 	TOKEN_LBRACE,
 	TOKEN_RBRACE,
 	
+	TOKEN_PLUS,
+	TOKEN_MINUS,
+	TOKEN_TIMES,
+	TOKEN_DIVIDE,
+	TOKEN_MODULO,
+	
 	// : = and ;
 	TOKEN_COLON,
 	TOKEN_EQ,
@@ -34,6 +40,8 @@ enum TokenType {
 	TOKEN_EOF
 };
 
+std::ostream& operator<<(std::ostream& os, TokenType n);
+
 // An object representing a token
 class Token {
 	TokenType _type;
@@ -48,6 +56,8 @@ public:
 	~Token();
 	TokenType type();
 };
+
+std::ostream& operator<<(std::ostream& os, Token n);
 
 // The lexer object!
 class Lexer {

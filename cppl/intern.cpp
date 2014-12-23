@@ -11,9 +11,7 @@
 
 // TODO: This sucks balls right now, should be improved
 std::unordered_set<std::string> string_pool;
-const char *intern(const char *str) {
-	// Unfortunately, this copies :'(. Fix later.
-	auto string = std::string(str);
+const char *intern(std::string string) {
 	auto interned = string_pool.find(string);
 	if (interned == string_pool.end()) {
 		string_pool.insert(string);

@@ -11,6 +11,6 @@
 
 #include <string>
 
-const char *intern(const char *str);
+const char *intern(std::string str);
 
 #endif /* defined(__cppl__intern__) */
