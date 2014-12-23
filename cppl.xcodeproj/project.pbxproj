@@ -8,6 +8,9 @@
 
 /* Begin PBXBuildFile section */
 		4C1D94DB1A48F4B1003AA4ED /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4C1D94DA1A48F4B1003AA4ED /* main.cpp */; };
+		4CA87A1A1A490C2C009A1E03 /* ast.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CA87A181A490C2C009A1E03 /* ast.cpp */; };
+		4CA87A1D1A490EA7009A1E03 /* lexer.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CA87A1B1A490EA7009A1E03 /* lexer.cpp */; };
+		4CA87A201A490F0C009A1E03 /* intern.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 4CA87A1E1A490F0C009A1E03 /* intern.cpp */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -25,6 +28,12 @@
 /* Begin PBXFileReference section */
 		4C1D94D71A48F4B1003AA4ED /* cppl */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = cppl; sourceTree = BUILT_PRODUCTS_DIR; };
 		4C1D94DA1A48F4B1003AA4ED /* main.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; path = main.cpp; sourceTree = "<group>"; };
+		4CA87A181A490C2C009A1E03 /* ast.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ast.cpp; sourceTree = "<group>"; };
+		4CA87A191A490C2C009A1E03 /* ast.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ast.h; sourceTree = "<group>"; };
+		4CA87A1B1A490EA7009A1E03 /* lexer.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = lexer.cpp; sourceTree = "<group>"; };
+		4CA87A1C1A490EA7009A1E03 /* lexer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lexer.h; sourceTree = "<group>"; };
+		4CA87A1E1A490F0C009A1E03 /* intern.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = intern.cpp; sourceTree = "<group>"; };
+		4CA87A1F1A490F0C009A1E03 /* intern.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = intern.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +67,12 @@
 			isa = PBXGroup;
 			children = (
 				4C1D94DA1A48F4B1003AA4ED /* main.cpp */,
+				4CA87A181A490C2C009A1E03 /* ast.cpp */,
+				4CA87A1B1A490EA7009A1E03 /* lexer.cpp */,
+				4CA87A1E1A490F0C009A1E03 /* intern.cpp */,
+				4CA87A1F1A490F0C009A1E03 /* intern.h */,
+				4CA87A1C1A490EA7009A1E03 /* lexer.h */,
+				4CA87A191A490C2C009A1E03 /* ast.h */,
 			);
 			path = cppl;
 			sourceTree = "<group>";
@@ -118,7 +133,10 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				4CA87A1A1A490C2C009A1E03 /* ast.cpp in Sources */,
 				4C1D94DB1A48F4B1003AA4ED /* main.cpp in Sources */,
+				4CA87A1D1A490EA7009A1E03 /* lexer.cpp in Sources */,
+				4CA87A201A490F0C009A1E03 /* intern.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -232,6 +250,7 @@
 				4C1D94E01A48F4B1003AA4ED /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

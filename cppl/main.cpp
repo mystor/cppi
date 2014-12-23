@@ -7,9 +7,20 @@
 //
 
 #include <iostream>
+#include <sstream>
+#include "lexer.h"
+#include "ast.h"
 
 int main(int argc, const char * argv[]) {
-	// insert code here...
-	std::cout << "Hello, World!\n";
+	
+	auto inputString = "let abc(int def) : int = { 5 + 5 }";
+	std::stringstream ss;
+	ss << inputString;
+	
+	std::cout << "Running parser on: " << inputString << "\n";
+	
+	auto lex = Lexer(&ss);
+	auto stmts = parse(&lex);
+	
     return 0;
 }
