@@ -22,5 +22,7 @@ int main(int argc, const char * argv[]) {
 	auto lex = Lexer(&ss);
 	auto stmts = parse(&lex);
 	
+	std::cout << "Stmts: " << &stmts << "\n";
+	
     return 0;
 }

@@ -19,6 +19,7 @@ public:
 	Type(const char *ident) : ident(ident) {};
 	const char *ident;
 };
+std::ostream& operator<<(std::ostream& os, Type &type);
 
 const Type TYPE_NULL = Type(intern("void"));
 
@@ -28,29 +29,37 @@ public:
 	const char *name;
 	Type type;
 };
+std::ostream& operator<<(std::ostream& os, Argument &arg);
 
 // This will represent an arbitrary ast node
 // Very exciting, I know
 class Expr {
+public:
+	virtual std::ostream& show(std::ostream& os) = 0;
 };
+
+std::ostream& operator<<(std::ostream& os, Expr &expr);
 
 class StringExpr : public Expr {
 public:
 	StringExpr(const char *value) : value(value) {};
 	const char *value; // Interned!
+	virtual std::ostream& show(std::ostream& os);
 };
 
 class CallExpr : public Expr {
 public:
-	CallExpr(Expr callee, std::vector<Expr> args) : callee(callee), args(args) {};
-	Expr callee;
-	std::vector<Expr> args;
+	CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args) : callee(nullptr), args(std::move(args)) {};
+	std::unique_ptr<Expr> callee;
+	std::vector<std::unique_ptr<Expr>> args;
+	virtual std::ostream& show(std::ostream& os);
 };
 
 class IdentExpr : public Expr {
 public:
 	IdentExpr(const char *ident) : ident(ident) {};
 	const char *ident;
+	virtual std::ostream& show(std::ostream& os);
 };
 
 enum OperationType {
@@ -61,46 +70,63 @@ enum OperationType {
 	OPERATION_MODULO
 };
 
+std::ostream& operator<<(std::ostream& os, OperationType opty);
+
 class InfixExpr : public Expr {
 public:
-	InfixExpr(OperationType op, Expr lhs, Expr rhs) : op(op), lhs(lhs), rhs(rhs) {};
+	InfixExpr(OperationType op,
+			  std::unique_ptr<Expr> lhs,
+			  std::unique_ptr<Expr> rhs) : op(op), lhs(nullptr), rhs(nullptr) {};
 	OperationType op;
-	Expr lhs;
-	Expr rhs;
+	std::unique_ptr<Expr> lhs;
+	std::unique_ptr<Expr> rhs;
+	virtual std::ostream& show(std::ostream& os);
 };
 
 class Stmt {
+public:
+	virtual std::ostream& show(std::ostream& os) = 0;
 };
+
+std::ostream& operator<<(std::ostream& os, Stmt &stmt);
 
 class DeclarationStmt : public Stmt {
 public:
+	DeclarationStmt(const char *name, Type type, std::unique_ptr<Expr> value) : name(name), type(type), value(nullptr) {};
 	const char *name;
-	Expr value;
+	Type type;
+	std::unique_ptr<Expr> value;
+	virtual std::ostream& show(std::ostream& os);
 };
 
 class FunctionStmt : public Stmt {
 public:
+	FunctionStmt(const char *name, std::vector<Argument> arguments, Type return_type, std::vector<std::unique_ptr<Stmt>> body) : name(name), arguments(arguments), return_type(return_type), body(std::move(body)) {};
 	const char *name;
 	std::vector<Argument> arguments;
 	Type return_type;
-	std::vector<Stmt> body;
+	std::vector<std::unique_ptr<Stmt>> body;
+	virtual std::ostream& show(std::ostream& os);
 };
 
 class ExprStmt : public Stmt {
 public:
-	ExprStmt(Expr expr) : expr(expr) {};
-	Expr expr;
+	ExprStmt(std::unique_ptr<Expr> expr) : expr(nullptr) {};
+	std::unique_ptr<Expr> expr;
+	virtual std::ostream& show(std::ostream& os);
 };
 
 class EmptyStmt : public Stmt {
+public:
+	virtual std::ostream& show(std::ostream& os);
 };
 const EmptyStmt EMPTY_STMT = EmptyStmt();
 
 
 // Yeah, we're throwing the parser stuff in here too, 'cause why not!
 // Yes, its the wrong place to do it.
-std::vector<Stmt> parse(Lexer *lex);
-Stmt parse_stmt(Lexer *lex);
-Expr parse_expr(Lexer *lex);
+std::vector<std::unique_ptr<Stmt>> parse(Lexer *lex);
+std::unique_ptr<Stmt> parse_stmt(Lexer *lex);
+std::unique_ptr<Expr> parse_expr(Lexer *lex);
 
 #endif /* defined(__cppl__ast__) */

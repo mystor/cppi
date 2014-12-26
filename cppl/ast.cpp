@@ -9,8 +9,71 @@
 #include "ast.h"
 #include <assert.h>
 
-std::vector<Stmt> parse_stmts(Lexer *lex) {
-	std::vector<Stmt> stmts;
+std::ostream& operator<<(std::ostream& os, Type &ty) {
+	return os << ty.ident;
+}
+
+std::ostream& operator<<(std::ostream& os, Argument &arg) {
+	return os << arg.name << " " << &arg.type;
+}
+
+std::ostream& operator<<(std::ostream& os, Expr& expr) {
+	return expr.show(os);
+}
+
+std::ostream& operator<<(std::ostream& os, Stmt& stmt) {
+	return stmt.show(os);
+}
+
+std::ostream& StringExpr::show(std::ostream& os) {
+	return os << '"' << value << '"';
+}
+
+std::ostream& CallExpr::show(std::ostream& os) {
+	return os << &callee << '(' << &args << ')';
+}
+
+std::ostream& IdentExpr::show(std::ostream& os) {
+	return os << ident;
+}
+
+std::ostream& InfixExpr::show(std::ostream& os) {
+	return os << '(' << &lhs << op << &rhs << ')';
+}
+
+std::ostream& DeclarationStmt::show(std::ostream &os) {
+	return os << "let " << name << ": " << &type << " = " << &value;
+}
+
+std::ostream& FunctionStmt::show(std::ostream &os) {
+	return os << "let " << name << "(" << &arguments << "): " << &return_type << " = {" << &body << "}";
+}
+
+std::ostream& ExprStmt::show(std::ostream &os) {
+	return os << &expr;
+}
+
+std::ostream& EmptyStmt::show(std::ostream &os) {
+	return os << ";PASS;";
+}
+
+std::ostream& operator<<(std::ostream& os, OperationType opty) {
+	switch (opty) {
+		case OPERATION_PLUS:
+			return os << "PLUS";
+		case OPERATION_MINUS:
+			return os << "MINUS";
+		case OPERATION_TIMES:
+			return os << "TIMES";
+		case OPERATION_DIVIDE:
+			return os << "DIVIDE";
+		case OPERATION_MODULO:
+			return os << "MODULO";
+	}
+};
+
+std::vector<std::unique_ptr<Stmt>> parse_stmts(Lexer *lex) {
+	std::vector<std::unique_ptr<Stmt>> stmts;
 	while (! lex->eof()) {
 		stmts.push_back(parse_stmt(lex));
 		// Remove a semicolon!
@@ -20,14 +83,14 @@ std::vector<Stmt> parse_stmts(Lexer *lex) {
 			break;
 		}
 	}
-	return stmts;
+	return std::move(stmts);
 }
 
-std::vector<Stmt> parse(Lexer *lex) {
+std::vector<std::unique_ptr<Stmt>> parse(Lexer *lex) {
 	auto stmts = parse_stmts(lex);
 	std::cout << lex->peek() << "\n";
 	assert(lex->eof() && "Expected end of file"); // TODO: Improve
-	return stmts;
+	return std::move(stmts);
 };
 
 Type parse_type(Lexer *lex) {
@@ -42,7 +105,7 @@ Argument parse_argument(Lexer *lex) {
 	return Argument(ident, parse_type(lex));
 }
 
-Stmt parse_stmt(Lexer *lex) {
+std::unique_ptr<Stmt> parse_stmt(Lexer *lex) {
 	auto first_type = lex->peek().type();
 	if (first_type == TOKEN_LET) {
 		std::cout << "Saw a LET\n";
@@ -72,42 +135,34 @@ Stmt parse_stmt(Lexer *lex) {
 			lex->expect(TOKEN_RBRACE);
 
 			// Create the statement! (There should probably be a constructor...)
-			FunctionStmt stmt;
-			stmt.name = var._data.ident;
-			stmt.return_type = type;
-			stmt.arguments = arguments;
-			stmt.body = body;
-			return stmt;
+			auto name = var._data.ident;
+			return std::make_unique<FunctionStmt>(name, std::move(arguments), type, std::move(body));
 		} else if (next.type() == TOKEN_COLON) {
-			// Variable declaration!
-			DeclarationStmt stmt;
-			stmt.name = var._data.ident;
-			stmt.value = parse_expr(lex);
-			return stmt;
+			return std::make_unique<DeclarationStmt>(var._data.ident, TYPE_NULL, parse_expr(lex));
 		} else {
 			assert(false && "Expected ( or :");
 		}
 	} else if (first_type == TOKEN_SEMI || first_type == TOKEN_RBRACE) {
-		return EMPTY_STMT;
+		return std::make_unique<EmptyStmt>();
 	} else {
 		std::cout << "Saw an expr\n";
-		return ExprStmt(parse_expr(lex));
+		return std::make_unique<ExprStmt>(parse_expr(lex));
 	}
 }
 
 
-Expr parse_expr_val(Lexer *lex) {
+std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
 	auto tok_type = lex->peek().type();
 	std::cout << "This far?\n";
 	
 	switch (tok_type) {
 		case TOKEN_STRING: {
 			std::cout << "Here STRING?\n";
-			return StringExpr(lex->eat()._data.str_value);
+			return std::make_unique<StringExpr>(lex->eat()._data.str_value);
 		}
 		case TOKEN_IDENT: {
 			std::cout << "Here IDENT?\n";
-			return IdentExpr(lex->eat()._data.ident);
+			return std::make_unique<IdentExpr>(lex->eat()._data.ident);
 		}
 		case TOKEN_LPAREN: {
 			lex->eat();
@@ -122,15 +177,15 @@ Expr parse_expr_val(Lexer *lex) {
 	}
 }
 
-Expr parse_expr_access(Lexer *lex) {
-	Expr expr = parse_expr_val(lex);
+std::unique_ptr<Expr> parse_expr_access(Lexer *lex) {
+	auto expr = parse_expr_val(lex);
 	std::cout << "Got this far!";
 	for (;;) {
 		switch (lex->peek().type()) {
 			case TOKEN_LPAREN: {
 				// Parse some args!
 				lex->eat();
-				std::vector<Expr> args;
+				std::vector<std::unique_ptr<Expr>> args;
 				for (;;) {
 					if (lex->peek().type() == TOKEN_RPAREN) {
 						break;
@@ -148,7 +203,7 @@ Expr parse_expr_access(Lexer *lex) {
 					break;
 				}
 				lex->expect(TOKEN_RPAREN);
-				expr = CallExpr(expr, args);
+				expr = std::make_unique<CallExpr>(std::move(expr), std::move(args));
 				continue;
 			}
 			// case TOKEN_DOT: // Property accessing!
@@ -159,24 +214,24 @@ Expr parse_expr_access(Lexer *lex) {
 	return expr;
 }
 
-Expr parse_expr_tdm(Lexer *lex) {
-	Expr expr = parse_expr_access(lex);
+std::unique_ptr<Expr> parse_expr_tdm(Lexer *lex) {
+	auto expr = parse_expr_access(lex);
 	for (;;) {
 		switch (lex->peek().type()) {
 			case TOKEN_TIMES: {
 				lex->eat();
 				auto rhs = parse_expr_access(lex);
-				expr = InfixExpr(OPERATION_TIMES, expr, rhs);
+				expr = std::make_unique<InfixExpr>(OPERATION_TIMES, std::move(expr), std::move(rhs));
 			} continue;
 			case TOKEN_DIVIDE: {
 				lex->eat();
 				auto rhs = parse_expr_access(lex);
-				expr = InfixExpr(OPERATION_DIVIDE, expr, rhs);
+				expr = std::make_unique<InfixExpr>(OPERATION_DIVIDE, std::move(expr), std::move(rhs));
 			} continue;
 			case TOKEN_MODULO: {
 				lex->eat();
 				auto rhs = parse_expr_access(lex);
-				expr = InfixExpr(OPERATION_MODULO, expr, rhs);
+				expr = std::make_unique<InfixExpr>(OPERATION_MODULO, std::move(expr), std::move(rhs));
 			} continue;
 			default: break;
 		}
@@ -185,19 +240,19 @@ Expr parse_expr_tdm(Lexer *lex) {
 	return expr;
 }
 
-Expr parse_expr_pm(Lexer *lex) {
-	Expr expr = parse_expr_tdm(lex);
+std::unique_ptr<Expr> parse_expr_pm(Lexer *lex) {
+	auto expr = parse_expr_tdm(lex);
 	for (;;) {
 		switch (lex->peek().type()) {
 			case TOKEN_PLUS: {
 				lex->eat();
 				auto rhs = parse_expr_access(lex);
-				expr = InfixExpr(OPERATION_PLUS, expr, rhs);
+				expr = std::make_unique<InfixExpr>(OPERATION_PLUS, std::move(expr), std::move(rhs));
 			} continue;
 			case TOKEN_DIVIDE: {
 				lex->eat();
 				auto rhs = parse_expr_access(lex);
-				expr = InfixExpr(OPERATION_MINUS, expr, rhs);
+				expr = std::make_unique<InfixExpr>(OPERATION_MINUS, std::move(expr), std::move(rhs));
 			} continue;
 			default: break;
 		}
@@ -206,6 +261,6 @@ Expr parse_expr_pm(Lexer *lex) {
 	return expr;
 }
 
-Expr parse_expr(Lexer *lex) {
+std::unique_ptr<Expr> parse_expr(Lexer *lex) {
 	return parse_expr_pm(lex);
 }
