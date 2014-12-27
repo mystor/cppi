@@ -49,7 +49,7 @@ public:
 
 class CallExpr : public Expr {
 public:
-	CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args) : callee(nullptr), args(std::move(args)) {};
+	CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args) : callee(std::move(callee)), args(std::move(args)) {};
 	std::unique_ptr<Expr> callee;
 	std::vector<std::unique_ptr<Expr>> args;
 	virtual std::ostream& show(std::ostream& os);
@@ -76,7 +76,7 @@ class InfixExpr : public Expr {
 public:
 	InfixExpr(OperationType op,
 			  std::unique_ptr<Expr> lhs,
-			  std::unique_ptr<Expr> rhs) : op(op), lhs(nullptr), rhs(nullptr) {};
+			  std::unique_ptr<Expr> rhs) : op(op), lhs(std::move(lhs)), rhs(std::move(rhs)) {};
 	OperationType op;
 	std::unique_ptr<Expr> lhs;
 	std::unique_ptr<Expr> rhs;
@@ -92,7 +92,7 @@ std::ostream& operator<<(std::ostream& os, Stmt &stmt);
 
 class DeclarationStmt : public Stmt {
 public:
-	DeclarationStmt(const char *name, Type type, std::unique_ptr<Expr> value) : name(name), type(type), value(nullptr) {};
+	DeclarationStmt(const char *name, Type type, std::unique_ptr<Expr> value) : name(name), type(type), value(std::move(value)) {};
 	const char *name;
 	Type type;
 	std::unique_ptr<Expr> value;
@@ -111,7 +111,7 @@ public:
 
 class ExprStmt : public Stmt {
 public:
-	ExprStmt(std::unique_ptr<Expr> expr) : expr(nullptr) {};
+	ExprStmt(std::unique_ptr<Expr> expr) : expr(std::move(expr)) {};
 	std::unique_ptr<Expr> expr;
 	virtual std::ostream& show(std::ostream& os);
 };

@@ -14,7 +14,7 @@ std::ostream& operator<<(std::ostream& os, Type &ty) {
 }
 
 std::ostream& operator<<(std::ostream& os, Argument &arg) {
-	return os << arg.name << " " << &arg.type;
+	return os << arg.name << ": " << arg.type;
 }
 
 std::ostream& operator<<(std::ostream& os, Expr& expr) {
@@ -30,7 +30,13 @@ std::ostream& StringExpr::show(std::ostream& os) {
 }
 
 std::ostream& CallExpr::show(std::ostream& os) {
-	return os << &callee << '(' << &args << ')';
+	os << &callee << '(';
+	bool first = true;
+	for (auto i = args.begin(); i != args.end(); i++) {
+		if (first) first = false; else os << ", ";
+		os << **i;
+	}
+	return os << ')';
 }
 
 std::ostream& IdentExpr::show(std::ostream& os) {
@@ -38,7 +44,7 @@ std::ostream& IdentExpr::show(std::ostream& os) {
 }
 
 std::ostream& InfixExpr::show(std::ostream& os) {
-	return os << '(' << &lhs << op << &rhs << ')';
+	return os << '(' << *lhs << ' ' << op << ' ' << *rhs << ')';
 }
 
 std::ostream& DeclarationStmt::show(std::ostream &os) {
@@ -46,11 +52,22 @@ std::ostream& DeclarationStmt::show(std::ostream &os) {
 }
 
 std::ostream& FunctionStmt::show(std::ostream &os) {
-	return os << "let " << name << "(" << &arguments << "): " << &return_type << " = {" << &body << "}";
+	os << "let " << name << "(";
+	bool first = true;
+	for (auto i = arguments.begin(); i != arguments.end(); i++) {
+		if (first) first = false; else os << ", ";
+		os << *i;
+	}
+	os << "): " << return_type << " = {\n";
+	for (auto i = body.begin(); i != body.end(); i++) {
+		os << **i;
+		os << ";\n";
+	}
+	return os << "}";
 }
 
 std::ostream& ExprStmt::show(std::ostream &os) {
-	return os << &expr;
+	return os << *expr;
 }
 
 std::ostream& EmptyStmt::show(std::ostream &os) {
