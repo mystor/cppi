@@ -14,6 +14,6 @@
 #include <llvm/IR/Module.h>
 #include "ast.h"
 
-llvm::Module *generate_module(std::vector<std::unique_ptr<Stmt>> stmts);
+llvm::Module *generate_module(std::vector<std::unique_ptr<Item>> items);
 
 #endif /* defined(__cppl__gen__) */
