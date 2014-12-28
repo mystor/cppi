@@ -25,7 +25,7 @@ else()
 endif()
 
 # Compile the cppl executable
-add_executable (cppl src/main.cpp src/intern.cpp src/lexer.cpp src/ast.cpp src/gen.cpp)
+add_executable (cppl src/main.cpp src/intern.cpp src/lexer.cpp src/ast.cpp src/gen.cpp src/parse.cpp)
 
 # LLVM stuff
 llvm_map_components_to_libnames(llvm_libs support core irreader)

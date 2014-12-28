@@ -150,11 +150,4 @@ public:
     virtual void visit(EmptyStmt *stmt) = 0;
 };
 
-
-// Yeah, we're throwing the parser stuff in here too, 'cause why not!
-// Yes, its the wrong place to do it.
-std::vector<std::unique_ptr<Stmt>> parse(Lexer *lex);
-std::unique_ptr<Stmt> parse_stmt(Lexer *lex);
-std::unique_ptr<Expr> parse_expr(Lexer *lex);
-
 #endif /* defined(__cppl__ast__) */

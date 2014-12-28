@@ -20,7 +20,7 @@ Token::Token(TokenType type) {
 }
 
 Token::~Token() {
-	
+
 }
 
 TokenType Token::type() {
@@ -41,13 +41,13 @@ Token Lexer::next_token() {
 			case ':': return Token(TOKEN_COLON);
 			case ',': return Token(TOKEN_COMMA);
 			case '=': return Token(TOKEN_EQ);
-				
+
 			case '+': return Token(TOKEN_PLUS);
 			case '-': return Token(TOKEN_MINUS);
 			case '*': return Token(TOKEN_TIMES);
 			case '/': return Token(TOKEN_DIVIDE);
 			case '%': return Token(TOKEN_MODULO);
-				
+
 			case '"': {
 				auto token = Token(TOKEN_STRING);
 				std::string chrs;
@@ -65,12 +65,12 @@ Token Lexer::next_token() {
 				token._data.str_value = intern(chrs);
 				return token;
 			}
-				
+
 			// Skip newlines or whitespace
 			case ' ':
 			case '\n':
 				break;
-				
+
 			default: {
 				// It's an identifier! Totally!
 				auto token = Token(TOKEN_IDENT);
@@ -102,18 +102,16 @@ Token Lexer::next_token() {
 			}
 		};
 	}
-	
+
 }
 
 Token Lexer::peek() {
-	std::cout << "Looking at " << cache << "\n";
 	return cache;
 }
 
 Token Lexer::eat() {
 	auto token = cache;
 	cache = next_token();
-	std::cout << "Ate a " << cache << "\n";
 	return token;
 }
 
@@ -131,7 +129,6 @@ bool Lexer::eof() {
 	if (cache.type() == TOKEN_EOF) {
 		return true;
 	} else {
-		std::cout << "Instead saw a " << cache << "\n";
 		return false;
 	}
 }
