@@ -7,25 +7,34 @@
 //
 
 #include <iostream>
+#include <fstream>
 #include <sstream>
 #include "lexer.h"
 #include "ast.h"
 #include "parse.h"
 
 int main(int argc, const char * argv[]) {
+    // Usage Message (TODO: Improve)
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <FileName>\n"
+                  << "Compiles the file given by <FileName>\n\n";
+        return -1;
+    }
 
-	auto inputString = "let abc(def : int) : int = { 5 + 5 }";
-	std::stringstream ss;
-	ss << inputString;
+    // Read in the file passed as the first argument
+    std::ifstream file_stream;
+    file_stream.open(argv[1]);
 
-	std::cout << "Running parser on: " << inputString << "\n";
+    // Parse it!
+    auto lex = Lexer(&file_stream);
+    auto stmts = parse(&lex);
 
-	auto lex = Lexer(&ss);
-	auto stmts = parse(&lex);
+    std::cout << "Result of parsing: \n";
+    for (auto &stmt : stmts) {
+        std::cout << *stmt << ";\n";
+    }
 
-	for (auto i = stmts.begin(); i != stmts.end(); i++) {
-		std::cout << **i << ";\n";
-	}
+    // TODO: Actually compile the code!
 
     return 0;
 }

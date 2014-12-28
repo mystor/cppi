@@ -1,0 +1,3 @@
+let abc(def: int): int = {
+    5 + 5;
+}
