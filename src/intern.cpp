@@ -12,11 +12,11 @@
 // TODO: This sucks balls right now, should be improved
 std::unordered_set<std::string> string_pool;
 const char *intern(std::string string) {
-	auto interned = string_pool.find(string);
-	if (interned == string_pool.end()) {
-		string_pool.insert(string);
-		return string_pool.find(string)->data();
-	} else {
-		return interned->data();
-	}
+    auto interned = string_pool.find(string);
+    if (interned == string_pool.end()) {
+        string_pool.insert(string);
+        return string_pool.find(string)->data();
+    } else {
+        return interned->data();
+    }
 }
