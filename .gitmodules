@@ -1,3 +1,0 @@
-[submodule "vendor/llvm"]
-	path = vendor/llvm
-	url = http://llvm.org/git/llvm

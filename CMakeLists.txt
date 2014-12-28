@@ -1,5 +1,15 @@
 cmake_minimum_required(VERSION 3.0)
 
+project(cppl)
+
+find_package(LLVM REQUIRED CONFIG)
+
+message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
+message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+include_directories(${LLVM_INCLUDE_DIRS})
+add_definitions(${LLVM_DEFINITIONS})
+
 # Ensure that the compiler supports c++14 because it's required for our code!
 include(CheckCXXCompilerFlag)
 
@@ -15,4 +25,9 @@ else()
 endif()
 
 # Compile the cppl executable
-add_executable (cppl src/main.cpp src/intern.cpp src/lexer.cpp src/ast.cpp)
+add_executable (cppl src/main.cpp src/intern.cpp src/lexer.cpp src/ast.cpp src/gen.cpp)
+
+# LLVM stuff
+llvm_map_components_to_libnames(llvm_libs support core irreader)
+
+target_link_libraries(cppl ${llvm_libs})

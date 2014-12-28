@@ -1,0 +1,27 @@
+[
+{
+  "directory": "/Users/michael/Coding/c/cppl",
+  "command": "/usr/bin/c++   -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS  -std=c++1y -stdlib=libc++ -I/usr/local/include    -o CMakeFiles/cppl.dir/src/main.cpp.o -c /Users/michael/Coding/c/cppl/src/main.cpp",
+  "file": "/Users/michael/Coding/c/cppl/src/main.cpp"
+},
+{
+  "directory": "/Users/michael/Coding/c/cppl",
+  "command": "/usr/bin/c++   -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS  -std=c++1y -stdlib=libc++ -I/usr/local/include    -o CMakeFiles/cppl.dir/src/intern.cpp.o -c /Users/michael/Coding/c/cppl/src/intern.cpp",
+  "file": "/Users/michael/Coding/c/cppl/src/intern.cpp"
+},
+{
+  "directory": "/Users/michael/Coding/c/cppl",
+  "command": "/usr/bin/c++   -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS  -std=c++1y -stdlib=libc++ -I/usr/local/include    -o CMakeFiles/cppl.dir/src/lexer.cpp.o -c /Users/michael/Coding/c/cppl/src/lexer.cpp",
+  "file": "/Users/michael/Coding/c/cppl/src/lexer.cpp"
+},
+{
+  "directory": "/Users/michael/Coding/c/cppl",
+  "command": "/usr/bin/c++   -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS  -std=c++1y -stdlib=libc++ -I/usr/local/include    -o CMakeFiles/cppl.dir/src/ast.cpp.o -c /Users/michael/Coding/c/cppl/src/ast.cpp",
+  "file": "/Users/michael/Coding/c/cppl/src/ast.cpp"
+},
+{
+  "directory": "/Users/michael/Coding/c/cppl",
+  "command": "/usr/bin/c++   -D__STDC_CONSTANT_MACROS -D__STDC_LIMIT_MACROS  -std=c++1y -stdlib=libc++ -I/usr/local/include    -o CMakeFiles/cppl.dir/src/gen.cpp.o -c /Users/michael/Coding/c/cppl/src/gen.cpp",
+  "file": "/Users/michael/Coding/c/cppl/src/gen.cpp"
+}
+]

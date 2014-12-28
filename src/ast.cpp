@@ -29,6 +29,8 @@ std::ostream& StringExpr::show(std::ostream& os) {
 	return os << '"' << value << '"';
 }
 
+void StringExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
 std::ostream& CallExpr::show(std::ostream& os) {
 	os << &callee << '(';
 	bool first = true;
@@ -39,17 +41,25 @@ std::ostream& CallExpr::show(std::ostream& os) {
 	return os << ')';
 }
 
+void CallExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
 std::ostream& IdentExpr::show(std::ostream& os) {
 	return os << ident;
 }
+
+void IdentExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
 
 std::ostream& InfixExpr::show(std::ostream& os) {
 	return os << '(' << *lhs << ' ' << op << ' ' << *rhs << ')';
 }
 
+void InfixExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
 std::ostream& DeclarationStmt::show(std::ostream &os) {
 	return os << "let " << name << ": " << &type << " = " << &value;
 }
+
+void DeclarationStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
 
 std::ostream& FunctionStmt::show(std::ostream &os) {
 	os << "let " << name << "(";
@@ -66,13 +76,19 @@ std::ostream& FunctionStmt::show(std::ostream &os) {
 	return os << "}";
 }
 
+void FunctionStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
+
 std::ostream& ExprStmt::show(std::ostream &os) {
 	return os << *expr;
 }
 
+void ExprStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
+
 std::ostream& EmptyStmt::show(std::ostream &os) {
 	return os << ";PASS;";
 }
+
+void EmptyStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
 
 std::ostream& operator<<(std::ostream& os, OperationType opty) {
 	switch (opty) {
@@ -128,7 +144,7 @@ std::unique_ptr<Stmt> parse_stmt(Lexer *lex) {
 		std::cout << "Saw a LET\n";
 		lex->eat();
 		auto var = lex->expect(TOKEN_IDENT);
-		
+
 		auto next = lex->eat();
 		if (next.type() == TOKEN_LPAREN) {
 			// Function declaration!
@@ -171,7 +187,7 @@ std::unique_ptr<Stmt> parse_stmt(Lexer *lex) {
 std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
 	auto tok_type = lex->peek().type();
 	std::cout << "This far?\n";
-	
+
 	switch (tok_type) {
 		case TOKEN_STRING: {
 			std::cout << "Here STRING?\n";
