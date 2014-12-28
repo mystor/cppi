@@ -31,8 +31,9 @@ public:
 };
 std::ostream& operator<<(std::ostream& os, Argument &arg);
 
-// This will represent an arbitrary ast node
-// Very exciting, I know
+/***************
+ * Expressions *
+ ***************/
 class ExprVisitor;
 class Expr {
 public:
@@ -46,6 +47,14 @@ class StringExpr : public Expr {
 public:
     StringExpr(const char *value) : value(value) {};
     const char *value; // Interned!
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ExprVisitor &visitor);
+};
+
+class IntExpr : public Expr {
+public:
+    IntExpr(int value) : value(value) {};
+    int value;
     virtual std::ostream& show(std::ostream& os);
     virtual void accept(ExprVisitor &visitor);
 };
@@ -92,10 +101,15 @@ public:
 class ExprVisitor {
 public:
     virtual void visit(StringExpr *expr) = 0;
+    virtual void visit(IntExpr *expr) = 0;
     virtual void visit(CallExpr *expr) = 0;
     virtual void visit(IdentExpr *expr) = 0;
     virtual void visit(InfixExpr *expr) = 0;
 };
+
+/**************
+ * Statements *
+ **************/
 
 class StmtVisitor;
 class Stmt {
@@ -112,17 +126,6 @@ public:
     const char *name;
     Type type;
     std::unique_ptr<Expr> value;
-    virtual std::ostream& show(std::ostream& os);
-    virtual void accept(StmtVisitor &visitor);
-};
-
-class FunctionStmt : public Stmt {
-public:
-    FunctionStmt(const char *name, std::vector<Argument> arguments, Type return_type, std::vector<std::unique_ptr<Stmt>> body) : name(name), arguments(arguments), return_type(return_type), body(std::move(body)) {};
-    const char *name;
-    std::vector<Argument> arguments;
-    Type return_type;
-    std::vector<std::unique_ptr<Stmt>> body;
     virtual std::ostream& show(std::ostream& os);
     virtual void accept(StmtVisitor &visitor);
 };
@@ -145,9 +148,47 @@ const EmptyStmt EMPTY_STMT = EmptyStmt();
 class StmtVisitor {
 public:
     virtual void visit(DeclarationStmt *stmt) = 0;
-    virtual void visit(FunctionStmt *stmt) = 0;
     virtual void visit(ExprStmt *stmt) = 0;
     virtual void visit(EmptyStmt *stmt) = 0;
+};
+
+/*********
+ * Items *
+ *********/
+
+class ItemVisitor;
+class Item {
+public:
+    virtual std::ostream& show(std::ostream& os) = 0;
+    virtual void accept(ItemVisitor &visitor) = 0;
+};
+
+std::ostream& operator<<(std::ostream& os, Item &stmt);
+
+class FunctionItem : public Item {
+public:
+    FunctionItem(const char *name, std::vector<Argument> arguments, Type return_type, std::vector<std::unique_ptr<Stmt>> body)
+        : name(name), arguments(arguments), return_type(return_type), body(std::move(body)) {};
+    const char *name;
+    std::vector<Argument> arguments;
+    Type return_type;
+    std::vector<std::unique_ptr<Stmt>> body;
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ItemVisitor &visitor);
+};
+
+class EmptyItem : public Item {
+public:
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ItemVisitor &visitor);
+};
+
+const EmptyItem EMPTY_ITEM = EmptyItem();
+
+class ItemVisitor {
+public:
+    virtual void visit(FunctionItem *item) = 0;
+    virtual void visit(EmptyItem *item) = 0;
 };
 
 #endif /* defined(__cppl__ast__) */

@@ -21,8 +21,6 @@ public:
     virtual void visit(DeclarationStmt *stmt) {
 
     }
-    virtual void visit(FunctionStmt *stmt) {
-    }
     virtual void visit(ExprStmt *stmt) {
     }
     virtual void visit(EmptyStmt *stmt) {

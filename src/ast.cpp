@@ -43,6 +43,10 @@ std::ostream& operator<<(std::ostream& os, Stmt& stmt) {
     return stmt.show(os);
 }
 
+std::ostream& operator<<(std::ostream& os, Item& item) {
+    return item.show(os);
+}
+
 /***************
  * Expressions *
  ***************/
@@ -52,6 +56,14 @@ std::ostream& StringExpr::show(std::ostream& os) {
 }
 
 void StringExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
+
+std::ostream& IntExpr::show(std::ostream& os) {
+    return os << '"' << value << '"';
+}
+
+void IntExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
 
 std::ostream& CallExpr::show(std::ostream& os) {
     os << &callee << '(';
@@ -65,11 +77,13 @@ std::ostream& CallExpr::show(std::ostream& os) {
 
 void CallExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
 
+
 std::ostream& IdentExpr::show(std::ostream& os) {
     return os << ident;
 }
 
 void IdentExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
 
 std::ostream& InfixExpr::show(std::ostream& os) {
     return os << '(' << *lhs << ' ' << op << ' ' << *rhs << ')';
@@ -82,36 +96,47 @@ void InfixExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
  **************/
 
 std::ostream& DeclarationStmt::show(std::ostream &os) {
-    return os << "let " << name << ": " << &type << " = " << &value;
+    return os << "let " << name << ": " << type << " = " << *value << ";\n";
 }
 
 void DeclarationStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
 
-std::ostream& FunctionStmt::show(std::ostream &os) {
-    os << "let " << name << "(";
+
+std::ostream& ExprStmt::show(std::ostream &os) {
+    return os << *expr << ";\n";
+}
+
+void ExprStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
+
+
+std::ostream& EmptyStmt::show(std::ostream &os) {
+    return os << "PASS;\n";
+}
+
+void EmptyStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
+
+/*********
+ * Items *
+ *********/
+
+std::ostream& FunctionItem::show(std::ostream &os) {
+    os << "fn " << name << "(";
     bool first = true;
     for (auto i = arguments.begin(); i != arguments.end(); i++) {
         if (first) first = false; else os << ", ";
         os << *i;
     }
-    os << "): " << return_type << " = {\n";
+    os << "): " << return_type << " {\n";
     for (auto i = body.begin(); i != body.end(); i++) {
         os << **i;
-        os << ";\n";
     }
     return os << "}";
 }
 
-void FunctionStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
+void FunctionItem::accept(ItemVisitor &visitor) { visitor.visit(this); }
 
-std::ostream& ExprStmt::show(std::ostream &os) {
-    return os << *expr;
+std::ostream& EmptyItem::show(std::ostream &os) {
+    return os << "PASS;";
 }
 
-void ExprStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
-
-std::ostream& EmptyStmt::show(std::ostream &os) {
-    return os << ";PASS;";
-}
-
-void EmptyStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
+void EmptyItem::accept(ItemVisitor &visitor) { visitor.visit(this); }

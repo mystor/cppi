@@ -14,8 +14,10 @@
 #include "ast.h"
 
 // Parse an entire program
-std::vector<std::unique_ptr<Stmt>> parse(Lexer *lex);
+std::vector<std::unique_ptr<Item>> parse(Lexer *lex);
 
+// Parse an individual item
+std::unique_ptr<Item> parse_item(Lexer *lex);
 // Parse an individual statement
 std::unique_ptr<Stmt> parse_stmt(Lexer *lex);
 // Parse an expression

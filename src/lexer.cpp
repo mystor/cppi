@@ -35,6 +35,7 @@ Token Lexer::next_token() {
         case '{': return Token(TOKEN_LBRACE);
         case '}': return Token(TOKEN_RBRACE);
         case ':': return Token(TOKEN_COLON);
+        case ';': return Token(TOKEN_SEMI);
         case ',': return Token(TOKEN_COMMA);
         case '=': return Token(TOKEN_EQ);
 
@@ -68,12 +69,29 @@ Token Lexer::next_token() {
             break;
 
         default: {
+            if ('0' <= first && first <= '9') {
+                // It's a number!
+                // For now, let's just do integers...
+                auto token = Token(TOKEN_INT);
+                token._data.int_value = first - '0';
+                first = stream->peek();
+                while ('0' <= first && first <= '9') {
+                    std::cout << "In loop, first=" << first << "\n";
+                    token._data.int_value *= 10;
+                    token._data.int_value += first - '0';
+                    stream->get();
+                    first = stream->peek();
+                }
+
+                return token;
+            }
+
             // It's an identifier! Totally!
             auto token = Token(TOKEN_IDENT);
             std::string chrs;
             chrs.push_back(first);
             first = stream->peek();
-            while (first != EOF &&
+            while (first != EOF && // This really ought to be a whitelist rather than a blacklist
                    first != '(' &&
                    first != ')' &&
                    first != '{' &&
@@ -82,7 +100,8 @@ Token Lexer::next_token() {
                    first != '=' &&
                    first != '"' &&
                    first != ' ' &&
-                   first != '\n') {
+                   first != '\n' &&
+                   first != ';') {
                 // Record this character
                 chrs.push_back(first);
                 // Remove it from the input stream
@@ -93,6 +112,8 @@ Token Lexer::next_token() {
             token._data.ident = intern(chrs);
             if (chrs == "let") { // TODO: This is awful
                 return Token(TOKEN_LET);
+            } else if (chrs == "fn") {
+                return Token(TOKEN_FN);
             }
             return token;
         }
@@ -167,6 +188,9 @@ std::ostream& operator<<(std::ostream& os, TokenType n) {
     case TOKEN_STRING: {
         os << "IDENT";
     } break;
+    case TOKEN_INT: {
+        os << "INT";
+    } break;
     case TOKEN_EOF: {
         os << "EOF";
     } break;
@@ -197,6 +221,9 @@ std::ostream& operator<<(std::ostream& os, Token n) {
         break;
     case TOKEN_STRING:
         os << " " << n._data.str_value;
+        break;
+    case TOKEN_INT:
+        os << " " << n._data.int_value;
         break;
     default:
         break;

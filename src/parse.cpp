@@ -1,11 +1,20 @@
 #include <assert.h>
 #include "parse.h"
 
+std::vector<std::unique_ptr<Item>> parse_items(Lexer *lex) {
+    std::vector<std::unique_ptr<Item>> items;
+    while (! lex->eof()) {
+        items.push_back(parse_item(lex));
+    }
+    return std::move(items);
+}
+
 std::vector<std::unique_ptr<Stmt>> parse_stmts(Lexer *lex) {
     std::vector<std::unique_ptr<Stmt>> stmts;
     while (! lex->eof()) {
         stmts.push_back(parse_stmt(lex));
-        // Remove a semicolon!
+
+        // Eat an intervening semicolon
         if (lex->peek().type() == TOKEN_SEMI) {
             lex->eat();
         } else {
@@ -14,12 +23,6 @@ std::vector<std::unique_ptr<Stmt>> parse_stmts(Lexer *lex) {
     }
     return std::move(stmts);
 }
-
-std::vector<std::unique_ptr<Stmt>> parse(Lexer *lex) {
-    auto stmts = parse_stmts(lex);
-    assert(lex->eof() && "Expected end of file"); // TODO: Improve
-    return std::move(stmts);
-};
 
 Type parse_type(Lexer *lex) {
     // TODO: Implement
@@ -33,46 +36,66 @@ Argument parse_argument(Lexer *lex) {
     return Argument(ident, parse_type(lex));
 }
 
+std::unique_ptr<Item> parse_item(Lexer *lex) {
+    auto first_type = lex->peek().type();
+    switch (first_type) {
+    case TOKEN_FN: {
+        lex->eat();
+        auto name = lex->expect(TOKEN_IDENT)._data.ident;
+        lex->expect(TOKEN_LPAREN);
+        // Parse expressions
+        std::vector<Argument> arguments;
+        for (;;) {
+            arguments.push_back(parse_argument(lex));
+            if (lex->peek().type() == TOKEN_COMMA) {
+                lex->eat();
+                continue;
+            } else { break; }
+        }
+        lex->expect(TOKEN_RPAREN);
+        // Potentially parse a type!
+        auto return_type = TYPE_NULL;
+        if (lex->peek().type() == TOKEN_COLON) {
+            lex->eat();
+            return_type = parse_type(lex);
+        }
+        lex->expect(TOKEN_LBRACE);
+        // The body of the function
+        auto body = parse_stmts(lex);
+        lex->expect(TOKEN_RBRACE);
+
+        return std::make_unique<FunctionItem>(name, std::move(arguments), return_type, std::move(body));
+    } break;
+
+    case TOKEN_SEMI: {
+        lex->eat();
+        return std::make_unique<EmptyItem>();
+    } break;
+
+    default: {
+        std::cerr << "Unexpected token " << lex->peek() << ". Expected `fn` or `;`\n";
+        assert(false && "UNEXPECTED TOKEN");
+    } break;
+    };
+}
+
 std::unique_ptr<Stmt> parse_stmt(Lexer *lex) {
     auto first_type = lex->peek().type();
-    if (first_type == TOKEN_LET) {
+    if (first_type == TOKEN_LET) { // TODO: Don't require the let in the future (it'll only take 1 token more lookahead)
         lex->eat();
         auto var = lex->expect(TOKEN_IDENT);
+        lex->expect(TOKEN_COLON);
+        // For now, we're requiring types EVERYWHERE!
+        auto type = parse_type(lex);
+        lex->expect(TOKEN_EQ);
+        auto expr = parse_expr(lex);
 
-        auto next = lex->eat();
-        if (next.type() == TOKEN_LPAREN) {
-            // Function declaration!
-            // First, we parse the arguments
-            std::vector<Argument> arguments;
-            for (;;) {
-                arguments.push_back(parse_argument(lex));
-                if (lex->peek().type() == TOKEN_COMMA) {
-                    lex->eat();
-                    continue;
-                } else { break; }
-            }
-            lex->expect(TOKEN_RPAREN);
-            lex->expect(TOKEN_COLON);
-            // Optionally do a return type
-            Type type = lex->peek().type() == TOKEN_COLON ? TYPE_NULL : parse_type(lex);
-            lex->expect(TOKEN_EQ);
-            lex->expect(TOKEN_LBRACE);
-            // Function body
-            auto body = parse_stmts(lex);
-            lex->expect(TOKEN_RBRACE);
-
-            // Create the statement! (There should probably be a constructor...)
-            auto name = var._data.ident;
-            return std::make_unique<FunctionStmt>(name, std::move(arguments), type, std::move(body));
-        } else if (next.type() == TOKEN_COLON) {
-            return std::make_unique<DeclarationStmt>(var._data.ident, TYPE_NULL, parse_expr(lex));
-        } else {
-            assert(false && "Expected ( or :");
-        }
+        return std::make_unique<DeclarationStmt>(var._data.ident, type, std::move(expr));
     } else if (first_type == TOKEN_SEMI || first_type == TOKEN_RBRACE) {
         return std::make_unique<EmptyStmt>();
     } else {
-        return std::make_unique<ExprStmt>(parse_expr(lex));
+        auto expr = parse_expr(lex);
+        return std::make_unique<ExprStmt>(std::move(expr));
     }
 }
 
@@ -84,6 +107,9 @@ std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
     case TOKEN_STRING: {
         return std::make_unique<StringExpr>(lex->eat()._data.str_value);
     }
+    case TOKEN_INT: {
+        return std::make_unique<IntExpr>(lex->eat()._data.int_value);
+    }
     case TOKEN_IDENT: {
         return std::make_unique<IdentExpr>(lex->eat()._data.ident);
     }
@@ -94,6 +120,7 @@ std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
         return expr;
     }
     default: {
+        std::cerr << "Unexpected " << lex->peek() << ", not valid expr starter\n";
         assert(false && "Unrecognized expression");
     }
     }
@@ -185,3 +212,12 @@ std::unique_ptr<Expr> parse_expr_pm(Lexer *lex) {
 std::unique_ptr<Expr> parse_expr(Lexer *lex) {
     return parse_expr_pm(lex);
 }
+
+std::vector<std::unique_ptr<Item>> parse(Lexer *lex) {
+    auto items = parse_items(lex);
+    if (! lex->eof()) {
+        std::cerr << "Unexpected " << lex->peek() << "; expected EOF\n";
+        assert(false && "Expected end of file");
+    }
+    return std::move(items);
+};

@@ -38,6 +38,7 @@ enum TokenType {
     // Other tokens!
     TOKEN_IDENT,
     TOKEN_STRING,
+    TOKEN_INT,
     TOKEN_EOF
 };
 

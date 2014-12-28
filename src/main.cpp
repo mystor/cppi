@@ -17,7 +17,7 @@ int main(int argc, const char * argv[]) {
     // Usage Message (TODO: Improve)
     if (argc < 2) {
         std::cerr << "Usage: " << argv[0] << " <FileName>\n"
-                  << "Compiles the file given by <FileName>\n\n";
+                  << "Compiles the file given by <FileName>\n";
         return -1;
     }
 
