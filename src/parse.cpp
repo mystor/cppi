@@ -91,6 +91,14 @@ std::unique_ptr<Stmt> parse_stmt(Lexer *lex) {
         auto expr = parse_expr(lex);
 
         return std::make_unique<DeclarationStmt>(var._data.ident, type, std::move(expr));
+    } else if (first_type == TOKEN_RETURN) {
+        lex->eat();
+        if (lex->peek().type() == TOKEN_SEMI) {
+            return std::make_unique<ReturnStmt>(nullptr);
+        } else {
+            auto value = parse_expr(lex);
+            return std::make_unique<ReturnStmt>(std::move(value));
+        }
     } else if (first_type == TOKEN_SEMI || first_type == TOKEN_RBRACE) {
         return std::make_unique<EmptyStmt>();
     } else {

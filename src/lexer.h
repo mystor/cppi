@@ -33,6 +33,7 @@ enum TokenType {
 
     // Keywords
     TOKEN_LET,
+    TOKEN_RETURN,
     TOKEN_FN,
 
     // Other tokens!

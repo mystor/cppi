@@ -139,6 +139,15 @@ public:
         ExprGen egen(st);
         stmt->expr->accept(egen);
     }
+    virtual void visit(ReturnStmt *stmt) {
+        if (stmt->value != nullptr) {
+            ExprGen egen(st);
+            stmt->value->accept(egen);
+            st->builder.CreateRet(egen.value);
+        } else {
+            st->builder.CreateRetVoid();
+        }
+    }
     virtual void visit(EmptyStmt *) {/* no-op */}
 };
 

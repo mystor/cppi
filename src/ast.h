@@ -138,6 +138,14 @@ public:
     virtual void accept(StmtVisitor &visitor);
 };
 
+class ReturnStmt : public Stmt {
+public:
+    ReturnStmt(std::unique_ptr<Expr> value) : value(std::move(value)) {};
+    std::unique_ptr<Expr> value;
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(StmtVisitor &visitor);
+};
+
 class EmptyStmt : public Stmt {
 public:
     virtual std::ostream& show(std::ostream& os);
@@ -149,8 +157,10 @@ class StmtVisitor {
 public:
     virtual void visit(DeclarationStmt *stmt) = 0;
     virtual void visit(ExprStmt *stmt) = 0;
+    virtual void visit(ReturnStmt *stmt) = 0;
     virtual void visit(EmptyStmt *stmt) = 0;
 };
+
 
 /*********
  * Items *

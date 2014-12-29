@@ -59,7 +59,7 @@ void StringExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
 
 
 std::ostream& IntExpr::show(std::ostream& os) {
-    return os << '"' << value << '"';
+    return os << value;
 }
 
 void IntExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
@@ -107,6 +107,17 @@ std::ostream& ExprStmt::show(std::ostream &os) {
 }
 
 void ExprStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
+
+
+std::ostream& ReturnStmt::show(std::ostream &os) {
+    if (value == nullptr) {
+        return os << "return VOID;\n";
+    } else {
+        return os << "return " << *value << ";\n";
+    }
+}
+
+void ReturnStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
 
 
 std::ostream& EmptyStmt::show(std::ostream &os) {

@@ -76,7 +76,6 @@ Token Lexer::next_token() {
                 token._data.int_value = first - '0';
                 first = stream->peek();
                 while ('0' <= first && first <= '9') {
-                    std::cout << "In loop, first=" << first << "\n";
                     token._data.int_value *= 10;
                     token._data.int_value += first - '0';
                     stream->get();
@@ -114,6 +113,8 @@ Token Lexer::next_token() {
                 return Token(TOKEN_LET);
             } else if (chrs == "fn") {
                 return Token(TOKEN_FN);
+            } else if (chrs == "return") {
+                return Token(TOKEN_RETURN);
             }
             return token;
         }
@@ -181,6 +182,9 @@ std::ostream& operator<<(std::ostream& os, TokenType n) {
     } break;
     case TOKEN_FN: {
         os << "FN";
+    } break;
+    case TOKEN_RETURN: {
+        os << "RETURN";
     } break;
     case TOKEN_IDENT: {
         os << "IDENT";

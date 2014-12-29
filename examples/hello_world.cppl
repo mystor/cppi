@@ -1,5 +1,5 @@
 fn abc(def: int): int {
    let x: int = 5 * 5;
    let y: int = 10 * 10;
-   30 + 30;
+   return x + y;
 }
