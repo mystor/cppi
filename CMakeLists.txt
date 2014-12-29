@@ -6,6 +6,7 @@ find_package(LLVM REQUIRED CONFIG)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+# message(STATUS "LLVM Tooks are in: ${LLVM_AVAILABLE_LIBS}")
 
 include_directories(${LLVM_INCLUDE_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
@@ -28,6 +29,6 @@ endif()
 add_executable (cppl src/main.cpp src/intern.cpp src/lexer.cpp src/ast.cpp src/gen.cpp src/parse.cpp)
 
 # LLVM stuff
-llvm_map_components_to_libnames(llvm_libs support core irreader)
+llvm_map_components_to_libnames(llvm_libs native codegen bitreader asmparser irreader)
 
 target_link_libraries(cppl ${llvm_libs})

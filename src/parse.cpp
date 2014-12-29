@@ -36,35 +36,62 @@ Argument parse_argument(Lexer *lex) {
     return Argument(ident, parse_type(lex));
 }
 
-std::unique_ptr<Item> parse_item(Lexer *lex) {
-    auto first_type = lex->peek().type();
-    switch (first_type) {
-    case TOKEN_FN: {
-        lex->eat();
-        auto name = lex->expect(TOKEN_IDENT)._data.ident;
-        lex->expect(TOKEN_LPAREN);
-        // Parse expressions
-        std::vector<Argument> arguments;
+FunctionProto parse_function_proto(Lexer *lex) {
+    lex->expect(TOKEN_FN);
+    auto name = lex->expect(TOKEN_IDENT)._data.ident;
+    lex->expect(TOKEN_LPAREN);
+
+    std::vector<Argument> arguments;
+    if (lex->peek().type() != TOKEN_RPAREN) {
         for (;;) {
             arguments.push_back(parse_argument(lex));
             if (lex->peek().type() == TOKEN_COMMA) {
                 lex->eat();
-                continue;
             } else { break; }
         }
-        lex->expect(TOKEN_RPAREN);
-        // Potentially parse a type!
-        auto return_type = TYPE_NULL;
-        if (lex->peek().type() == TOKEN_COLON) {
-            lex->eat();
-            return_type = parse_type(lex);
-        }
+    }
+
+    lex->expect(TOKEN_RPAREN);
+
+    auto return_type = TYPE_NULL;
+    if (lex->peek().type() == TOKEN_COLON) {
+        lex->eat();
+        return_type = parse_type(lex);
+    }
+
+    return FunctionProto(name, arguments, return_type);
+}
+
+std::unique_ptr<Item> parse_item(Lexer *lex) {
+    auto first_type = lex->peek().type();
+    switch (first_type) {
+    case TOKEN_FN: {
+        auto proto = parse_function_proto(lex);
+
         lex->expect(TOKEN_LBRACE);
         // The body of the function
         auto body = parse_stmts(lex);
         lex->expect(TOKEN_RBRACE);
 
-        return std::make_unique<FunctionItem>(name, std::move(arguments), return_type, std::move(body));
+        return std::make_unique<FunctionItem>(proto, std::move(body));
+    } break;
+
+    case TOKEN_FFI: {
+        lex->eat();
+        first_type = lex->peek().type();
+        switch (first_type) {
+        case TOKEN_FN: {
+            auto proto = parse_function_proto(lex);
+            lex->expect(TOKEN_SEMI);
+
+            return std::make_unique<FFIFunctionItem>(proto);
+        } break;
+
+        default: {
+            std::cerr << "Unexpected " << lex->peek() << ", expected FN";
+            assert(false && "Unexpected Token while parsing FFI");
+        } break;
+        }
     } break;
 
     case TOKEN_SEMI: {

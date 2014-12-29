@@ -66,7 +66,7 @@ void IntExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
 
 
 std::ostream& CallExpr::show(std::ostream& os) {
-    os << &callee << '(';
+    os << *callee << '(';
     bool first = true;
     for (auto i = args.begin(); i != args.end(); i++) {
         if (first) first = false; else os << ", ";
@@ -131,13 +131,13 @@ void EmptyStmt::accept(StmtVisitor &visitor) { visitor.visit(this); }
  *********/
 
 std::ostream& FunctionItem::show(std::ostream &os) {
-    os << "fn " << name << "(";
+    os << "fn " << proto.name << "(";
     bool first = true;
-    for (auto i = arguments.begin(); i != arguments.end(); i++) {
+    for (auto i = proto.arguments.begin(); i != proto.arguments.end(); i++) {
         if (first) first = false; else os << ", ";
         os << *i;
     }
-    os << "): " << return_type << " {\n";
+    os << "): " << proto.return_type << " {\n";
     for (auto i = body.begin(); i != body.end(); i++) {
         os << **i;
     }
@@ -145,6 +145,18 @@ std::ostream& FunctionItem::show(std::ostream &os) {
 }
 
 void FunctionItem::accept(ItemVisitor &visitor) { visitor.visit(this); }
+
+std::ostream& FFIFunctionItem::show(std::ostream &os) {
+    os << "FFI fn " << proto.name << "(";
+    bool first = true;
+    for (auto i = proto.arguments.begin(); i != proto.arguments.end(); i++) {
+        if (first) first = false; else os << ", ";
+        os << *i;
+    }
+    return os << "): " << proto.return_type << ";";
+}
+
+void FFIFunctionItem::accept(ItemVisitor &visitor) { visitor.visit(this); }
 
 std::ostream& EmptyItem::show(std::ostream &os) {
     return os << "PASS;";

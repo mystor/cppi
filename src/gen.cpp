@@ -7,7 +7,7 @@
 #include <llvm/IR/Module.h>
 
 struct Scope {
-    Scope *parent;
+    Scope *parent = NULL;
     std::unordered_map<const char*, llvm::Value*> vars;
     std::unordered_map<const char*, llvm::Value*>::iterator find(const char * key) {
         // Am I doing iterators wrong? Who the fuck knows...
@@ -64,7 +64,8 @@ public:
         if (var == st->scope->end()) {
             assert(false && "No such variable");
         }
-        if (var->second->getType()->isFunctionTy()) {
+        auto ty = var->second->getType();
+        if (ty->isPointerTy() && ty->getPointerElementType()->isFunctionTy()) {
             // Functions are special!
             value = var->second;
         } else {
@@ -76,7 +77,8 @@ public:
         expr->callee->accept(callee_eg);
         auto callee = callee_eg.value;
 
-        assert(callee->getType()->isFunctionTy());
+        auto ty = callee->getType();
+        assert(ty->isPointerTy() && ty->getPointerElementType()->isFunctionTy());
 
         std::vector<llvm::Value *> args;
         for (auto &arg : expr->args) {
@@ -151,47 +153,59 @@ public:
     virtual void visit(EmptyStmt *) {/* no-op */}
 };
 
+llvm::Function *generate_function_proto(GenState *st, FunctionProto &proto) {
+    // Creating the function's prototype
+    std::vector<llvm::Type *> arg_types;
+
+    for (auto arg : proto.arguments) {
+        arg_types.push_back(get_type(st, arg.type));
+    }
+
+    auto ft = llvm::FunctionType::get(get_type(st, proto.return_type),
+                                      arg_types, false);
+
+    auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, proto.name, st->module);
+
+    if (fn->getName() != proto.name) {
+        // This declaration has already been made
+        fn->eraseFromParent();
+        fn = st->module->getFunction(proto.name);
+
+        // If we have already defined a body, then that's a problem!
+        if (! fn->empty()) {
+            std::cerr << "Error: Redefinition of function " << proto.name << ".";
+            assert(false && "Function Redefinition");
+        }
+
+        // Check if the argument list is the same
+        // TODO: Implement
+    }
+
+    // Set argument names
+    unsigned idx = 0;
+    for (auto ai = fn->arg_begin(); idx != proto.arguments.size(); ++ai, ++idx) {
+        auto name = proto.arguments[idx].name;
+        ai->setName(name);
+    }
+
+    return fn;
+}
+
 class ItemGen : public ItemVisitor {
     GenState *st;
 public:
     ItemGen(GenState *st) : st(st) {}
 
     virtual void visit(FunctionItem *item) {
-        // Creating the function's prototype
-        std::vector<llvm::Type *> arg_types;
-
-        for (auto arg : item->arguments) {
-            arg_types.push_back(get_type(st, arg.type));
-        }
-
-        auto ft = llvm::FunctionType::get(get_type(st, item->return_type),
-                                                         arg_types, false);
-
-        auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, item->name, st->module);
-
-        if (fn->getName() != item->name) {
-            // This declaration has already been made
-            fn->eraseFromParent();
-            fn = st->module->getFunction(item->name);
-
-            // If we have already defined a body, then that's a problem!
-            if (! fn->empty()) {
-                std::cerr << "Error: Redefinition of function " << item->name << ".";
-                assert(false && "Function Redefinition");
-            }
-
-            // Check if the argument list is the same
-            // TODO: Implement
-        }
+        auto fn = generate_function_proto(st, item->proto);
 
         // Set argument names
         Scope body_scope = Scope();
         body_scope.parent = st->scope;
 
         unsigned idx = 0;
-        for (auto ai = fn->arg_begin(); idx != item->arguments.size(); ++ai, ++idx) {
-            auto name = item->arguments[idx].name;
-            ai->setName(name);
+        for (auto ai = fn->arg_begin(); idx != item->proto.arguments.size(); ++ai, ++idx) {
+            auto name = item->proto.arguments[idx].name;
             body_scope.vars.emplace(name, ai);
         }
 
@@ -212,7 +226,12 @@ public:
         llvm::verifyFunction(*fn);
 
         // Insert it into the global scope!
-        st->scope->vars.emplace(item->name, fn);
+        st->scope->vars.emplace(item->proto.name, fn);
+    }
+
+    virtual void visit(FFIFunctionItem *item) {
+        auto fn = generate_function_proto(st, item->proto);
+        st->scope->vars.emplace(item->proto.name, fn);
     }
 
     virtual void visit(EmptyItem *) {/* no-op */}

@@ -115,6 +115,8 @@ Token Lexer::next_token() {
                 return Token(TOKEN_FN);
             } else if (chrs == "return") {
                 return Token(TOKEN_RETURN);
+            } else if (chrs == "FFI") {
+                return Token(TOKEN_FFI);
             }
             return token;
         }
@@ -182,6 +184,9 @@ std::ostream& operator<<(std::ostream& os, TokenType n) {
     } break;
     case TOKEN_FN: {
         os << "FN";
+    } break;
+    case TOKEN_FFI: {
+        os << "FFI";
     } break;
     case TOKEN_RETURN: {
         os << "RETURN";

@@ -31,6 +31,15 @@ public:
 };
 std::ostream& operator<<(std::ostream& os, Argument &arg);
 
+class FunctionProto {
+public:
+    FunctionProto(const char *name, std::vector<Argument> arguments, Type return_type)
+        : name(name), arguments(arguments), return_type(return_type) {};
+    const char *name;
+    std::vector<Argument> arguments;
+    Type return_type;
+};
+
 /***************
  * Expressions *
  ***************/
@@ -177,12 +186,18 @@ std::ostream& operator<<(std::ostream& os, Item &stmt);
 
 class FunctionItem : public Item {
 public:
-    FunctionItem(const char *name, std::vector<Argument> arguments, Type return_type, std::vector<std::unique_ptr<Stmt>> body)
-        : name(name), arguments(arguments), return_type(return_type), body(std::move(body)) {};
-    const char *name;
-    std::vector<Argument> arguments;
-    Type return_type;
+    FunctionItem(FunctionProto proto, std::vector<std::unique_ptr<Stmt>> body)
+        : proto(proto), body(std::move(body)) {};
+    FunctionProto proto;
     std::vector<std::unique_ptr<Stmt>> body;
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ItemVisitor &visitor);
+};
+
+class FFIFunctionItem : public Item {
+public:
+    FFIFunctionItem(FunctionProto proto) : proto(proto) {};
+    FunctionProto proto;
     virtual std::ostream& show(std::ostream& os);
     virtual void accept(ItemVisitor &visitor);
 };
@@ -198,6 +213,7 @@ const EmptyItem EMPTY_ITEM = EmptyItem();
 class ItemVisitor {
 public:
     virtual void visit(FunctionItem *item) = 0;
+    virtual void visit(FFIFunctionItem *item) = 0;
     virtual void visit(EmptyItem *item) = 0;
 };
 
