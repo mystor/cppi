@@ -17,7 +17,7 @@ class Type {
 public:
     Type() { ident = intern("void"); };
     Type(const char *ident) : ident(ident) {};
-    const char *ident;
+    const char *ident; // interned
 };
 std::ostream& operator<<(std::ostream& os, Type &type);
 

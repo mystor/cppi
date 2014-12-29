@@ -12,6 +12,7 @@
 #include "lexer.h"
 #include "ast.h"
 #include "parse.h"
+#include "gen.h"
 
 int main(int argc, const char * argv[]) {
     // Usage Message (TODO: Improve)
@@ -35,6 +36,8 @@ int main(int argc, const char * argv[]) {
     }
 
     // TODO: Actually compile the code!
+    auto mod = generate_module(stmts);
+    mod->dump();
 
     return 0;
 }
