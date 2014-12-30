@@ -36,6 +36,13 @@ enum TokenType {
     TOKEN_RETURN,
     TOKEN_FFI,
     TOKEN_FN,
+    TOKEN_STRUCT,
+    TOKEN_IF,
+    TOKEN_ELSE,
+
+    // Booleans! WOO!
+    TOKEN_TRUE,
+    TOKEN_FALSE,
 
     // Other tokens!
     TOKEN_IDENT,

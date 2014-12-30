@@ -134,6 +134,36 @@ std::unique_ptr<Stmt> parse_stmt(Lexer *lex) {
     }
 }
 
+std::vector<Branch> parse_if(Lexer *lex) {
+    lex->expect(TOKEN_IF);
+    auto cond = parse_expr(lex);
+    lex->expect(TOKEN_LBRACE);
+    auto body = parse_stmts(lex);
+    lex->expect(TOKEN_RBRACE);
+
+    if (lex->peek().type() == TOKEN_ELSE) {
+        lex->eat();
+        if (lex->peek().type() == TOKEN_IF) { // There is an else if { block }
+            auto rest = parse_if(lex);
+            rest.insert(rest.begin(), Branch(std::move(cond), std::move(body)));
+
+            return rest;
+        } else {                              // It has only an else { block }
+            std::vector<Branch> branches;
+            branches.push_back(Branch(std::move(cond), std::move(body)));
+            lex->expect(TOKEN_LBRACE);
+            auto els_body = parse_stmts(lex);
+            lex->expect(TOKEN_RBRACE);
+            branches.push_back(Branch(nullptr, std::move(els_body)));
+
+            return branches;
+        }
+    } else {
+        std::vector<Branch> branches;
+        branches.push_back(Branch(std::move(cond), std::move(body)));
+        return branches;
+    }
+}
 
 std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
     auto tok_type = lex->peek().type();
@@ -145,6 +175,14 @@ std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
     case TOKEN_INT: {
         return std::make_unique<IntExpr>(lex->eat()._data.int_value);
     }
+    case TOKEN_TRUE: {
+        lex->eat();
+        return std::make_unique<BoolExpr>(true);
+    }
+    case TOKEN_FALSE: {
+        lex->eat();
+        return std::make_unique<BoolExpr>(false);
+    }
     case TOKEN_IDENT: {
         return std::make_unique<IdentExpr>(lex->eat()._data.ident);
     }
@@ -153,6 +191,10 @@ std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
         auto expr = parse_expr(lex);
         lex->expect(TOKEN_RPAREN);
         return expr;
+    }
+    case TOKEN_IF: {
+        auto branches = parse_if(lex);
+        return std::make_unique<IfExpr>(std::move(branches));
     }
     default: {
         std::cerr << "Unexpected " << lex->peek() << ", not valid expr starter\n";

@@ -113,10 +113,20 @@ Token Lexer::next_token() {
                 return Token(TOKEN_LET);
             } else if (chrs == "fn") {
                 return Token(TOKEN_FN);
+            } else if (chrs == "struct") {
+                return Token(TOKEN_STRUCT);
             } else if (chrs == "return") {
                 return Token(TOKEN_RETURN);
             } else if (chrs == "FFI") {
                 return Token(TOKEN_FFI);
+            } else if (chrs == "if") {
+                return Token(TOKEN_IF);
+            } else if (chrs == "else") {
+                return Token(TOKEN_ELSE);
+            } else if (chrs == "true") {
+                return Token(TOKEN_TRUE);
+            } else if (chrs == "false") {
+                return Token(TOKEN_FALSE);
             }
             return token;
         }
@@ -185,11 +195,26 @@ std::ostream& operator<<(std::ostream& os, TokenType n) {
     case TOKEN_FN: {
         os << "FN";
     } break;
+    case TOKEN_STRUCT: {
+        os << "STRUCT";
+    } break;
     case TOKEN_FFI: {
         os << "FFI";
     } break;
     case TOKEN_RETURN: {
         os << "RETURN";
+    } break;
+    case TOKEN_IF: {
+        os << "IF";
+    } break;
+    case TOKEN_ELSE: {
+        os << "ELSE";
+    } break;
+    case TOKEN_TRUE: {
+        os << "TRUE";
+    } break;
+    case TOKEN_FALSE: {
+        os << "FALSE";
     } break;
     case TOKEN_IDENT: {
         os << "IDENT";

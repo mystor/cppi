@@ -13,6 +13,9 @@
 #include <vector>
 #include "lexer.h"
 
+class Expr;
+class Stmt;
+
 class Type {
 public:
     Type() { ident = intern("void"); };
@@ -38,6 +41,14 @@ public:
     const char *name;
     std::vector<Argument> arguments;
     Type return_type;
+};
+
+class Branch {
+public:
+    Branch(std::unique_ptr<Expr> cond, std::vector<std::unique_ptr<Stmt>> body)
+        : cond(std::move(cond)), body(std::move(body)) {};
+    std::unique_ptr<Expr> cond;
+    std::vector<std::unique_ptr<Stmt>> body;
 };
 
 /***************
@@ -68,9 +79,18 @@ public:
     virtual void accept(ExprVisitor &visitor);
 };
 
+class BoolExpr : public Expr {
+public:
+    BoolExpr(bool value) : value(value) {};
+    bool value;
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ExprVisitor &visitor);
+};
+
 class CallExpr : public Expr {
 public:
-    CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args) : callee(std::move(callee)), args(std::move(args)) {};
+    CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args)
+        : callee(std::move(callee)), args(std::move(args)) {};
     std::unique_ptr<Expr> callee;
     std::vector<std::unique_ptr<Expr>> args;
     virtual std::ostream& show(std::ostream& os);
@@ -107,13 +127,23 @@ public:
     virtual void accept(ExprVisitor &visitor);
 };
 
+class IfExpr : public Expr {
+public:
+    IfExpr(std::vector<Branch> branches) : branches(std::move(branches)) {};
+    std::vector<Branch> branches;
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ExprVisitor &visitor);
+};
+
 class ExprVisitor {
 public:
     virtual void visit(StringExpr *expr) = 0;
     virtual void visit(IntExpr *expr) = 0;
+    virtual void visit(BoolExpr *expr) = 0;
     virtual void visit(CallExpr *expr) = 0;
     virtual void visit(IdentExpr *expr) = 0;
     virtual void visit(InfixExpr *expr) = 0;
+    virtual void visit(IfExpr *expr) = 0;
 };
 
 /**************

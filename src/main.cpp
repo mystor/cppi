@@ -72,6 +72,8 @@ int main(int argc, const char * argv[]) {
 
     auto mod = generate_module(stmts);
 
+    mod->dump();
+
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();
     llvm::InitializeNativeTargetAsmParser();

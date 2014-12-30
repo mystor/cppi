@@ -65,6 +65,13 @@ std::ostream& IntExpr::show(std::ostream& os) {
 void IntExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
 
 
+std::ostream& BoolExpr::show(std::ostream& os) {
+    return os << value;
+}
+
+void BoolExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
+
 std::ostream& CallExpr::show(std::ostream& os) {
     os << *callee << '(';
     bool first = true;
@@ -90,6 +97,28 @@ std::ostream& InfixExpr::show(std::ostream& os) {
 }
 
 void InfixExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
+
+std::ostream& IfExpr::show(std::ostream& os) {
+    auto first = true;
+    for (auto &branch : branches) {
+        if (first) first = false; else os << " else ";
+
+        if (branch.cond != nullptr) {
+            os << "if (" << *branch.cond << ") {\n";
+        } else {
+            os << "{\n";
+        }
+
+        for (auto &stmt : branch.body) {
+            os << *stmt;
+        }
+        os << "}";
+    }
+    return os;
+}
+
+void IfExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
 
 /**************
  * Statements *
