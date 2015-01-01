@@ -224,6 +224,15 @@ public:
     virtual void accept(ItemVisitor &visitor);
 };
 
+class StructItem : public Item {
+public:
+    StructItem(std::vector<Argument> args) : args(args) {};
+    const char *name;
+    std::vector<Argument> args;
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ItemVisitor &visitor);
+};
+
 class FFIFunctionItem : public Item {
 public:
     FFIFunctionItem(FunctionProto proto) : proto(proto) {};
@@ -243,6 +252,7 @@ const EmptyItem EMPTY_ITEM = EmptyItem();
 class ItemVisitor {
 public:
     virtual void visit(FunctionItem *item) = 0;
+    virtual void visit(StructItem *item) = 0;
     virtual void visit(FFIFunctionItem *item) = 0;
     virtual void visit(EmptyItem *item) = 0;
 };

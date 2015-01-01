@@ -175,6 +175,18 @@ std::ostream& FunctionItem::show(std::ostream &os) {
 
 void FunctionItem::accept(ItemVisitor &visitor) { visitor.visit(this); }
 
+std::ostream& StructItem::show(std::ostream &os) {
+    os << "struct " << name << " {\n";
+    bool first = true;
+    for (auto i = args.begin(); i != args.end(); i++) {
+        if (first) first = false; else os << ";\n";
+        os << "  " << *i;
+    }
+    return os << "};\n";
+}
+
+void StructItem::accept(ItemVisitor &visitor) { visitor.visit(this); }
+
 std::ostream& FFIFunctionItem::show(std::ostream &os) {
     os << "FFI fn " << proto.name << "(";
     bool first = true;

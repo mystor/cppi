@@ -9,6 +9,7 @@
 struct Scope {
     Scope *parent = NULL;
     std::unordered_map<const char*, llvm::Value*> vars;
+
     std::unordered_map<const char*, llvm::Value*>::iterator find(const char * key) {
         // Am I doing iterators wrong? Who the fuck knows...
         auto found = vars.find(key);
@@ -25,6 +26,8 @@ struct Scope {
     std::unordered_map<const char*, llvm::Value*>::iterator end() {
         return vars.end();
     }
+
+    std::unordered_map<const char*, llvm::Type*> types;
 };
 
 struct GenState {
@@ -98,9 +101,7 @@ public:
             args.push_back(gen_expr(st, *arg));
         }
 
-        value = st->builder.CreateCall(callee,
-                                       args,
-                                       "call_result");
+        value = st->builder.CreateCall(callee, args, "call_result");
     }
     virtual void visit(InfixExpr *expr) {
         auto lhs = gen_expr(st, *expr->lhs);
@@ -245,6 +246,10 @@ public:
         st->scope->vars.emplace(item->proto.name, fn);
     }
 
+    virtual void visit(StructItem *item) {
+        assert(false && "Not implemented yet");
+    }
+
     virtual void visit(FFIFunctionItem *item) {
         auto fn = generate_function_proto(st, item->proto);
         st->scope->vars.emplace(item->proto.name, fn);
@@ -326,7 +331,7 @@ inline void gen_item(GenState *st, Item &item) {
 
 llvm::Module *generate_module(std::vector<std::unique_ptr<Item>> &items) {
     llvm::LLVMContext &context = llvm::getGlobalContext();
-    llvm::Module *module = new llvm::Module("MyModuleName", context);
+    llvm::Module *module = new llvm::Module("cppi_module", context);
     llvm::IRBuilder<> builder = llvm::IRBuilder<>(context);
 
     Scope global_scope;
