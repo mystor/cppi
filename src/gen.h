@@ -9,11 +9,20 @@
 #ifndef __cppl__gen__
 #define __cppl__gen__
 
+#include "ast.h"
+#include "prgm.h"
+
 #include <vector>
 #include <memory>
-#include <llvm/IR/Module.h>
-#include "ast.h"
+#include <unordered_map>
 
-llvm::Module *generate_module(std::vector<std::unique_ptr<Item>> &items);
+#include <llvm/IR/DerivedTypes.h>
+#include <llvm/IR/IRBuilder.h>
+#include <llvm/IR/LLVMContext.h>
+#include <llvm/IR/Module.h>
+
+llvm::Type *get_type(Program &prgm, Type &ty);
+llvm::Value *gen_expr(Program &prgm, Expr &expr);
+llvm::Value *gen_stmt(Program &prgm, Stmt &stmt);
 
 #endif /* defined(__cppl__gen__) */

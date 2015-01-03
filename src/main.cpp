@@ -38,6 +38,7 @@
 #include "ast.h"
 #include "parse.h"
 #include "gen.h"
+#include "prgm.h"
 
 int main(int argc, const char * argv[]) {
     // Usage Message (TODO: Improve)
@@ -70,7 +71,12 @@ int main(int argc, const char * argv[]) {
         std::cout << *stmt << ";\n";
     }
 
-    auto mod = generate_module(stmts);
+    auto prgm = Program();
+    for (auto &item : stmts) {
+        prgm.add_item(*item);
+    }
+    prgm.build_all();
+    auto mod = prgm.module;
 
     mod->dump();
 
