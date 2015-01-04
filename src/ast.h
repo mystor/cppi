@@ -19,8 +19,8 @@ class Stmt;
 class Type {
 public:
     Type() { ident = intern("void"); };
-    Type(const char *ident) : ident(ident) {};
-    const char *ident; // interned
+    Type(istr ident) : ident(ident) {};
+    istr ident; // interned
 };
 std::ostream& operator<<(std::ostream& os, Type &type);
 
@@ -28,17 +28,17 @@ const Type TYPE_NULL = Type(intern("void"));
 
 class Argument {
 public:
-    Argument(const char *name, Type type) : name(name), type(type) {};
-    const char *name;
+    Argument(istr name, Type type) : name(name), type(type) {};
+    istr name;
     Type type;
 };
 std::ostream& operator<<(std::ostream& os, Argument &arg);
 
 class FunctionProto {
 public:
-    FunctionProto(const char *name, std::vector<Argument> arguments, Type return_type)
+    FunctionProto(istr name, std::vector<Argument> arguments, Type return_type)
         : name(name), arguments(arguments), return_type(return_type) {};
-    const char *name;
+    istr name;
     std::vector<Argument> arguments;
     Type return_type;
 };
@@ -65,8 +65,8 @@ std::ostream& operator<<(std::ostream& os, Expr &expr);
 
 class StringExpr : public Expr {
 public:
-    StringExpr(const char *value) : value(value) {};
-    const char *value; // Interned!
+    StringExpr(istr value) : value(value) {};
+    istr value; // Interned!
     virtual std::ostream& show(std::ostream& os);
     virtual void accept(ExprVisitor &visitor);
 };
@@ -99,8 +99,8 @@ public:
 
 class IdentExpr : public Expr {
 public:
-    IdentExpr(const char *ident) : ident(ident) {};
-    const char *ident;
+    IdentExpr(istr ident) : ident(ident) {};
+    istr ident;
     virtual std::ostream& show(std::ostream& os);
     virtual void accept(ExprVisitor &visitor);
 };
@@ -161,8 +161,8 @@ std::ostream& operator<<(std::ostream& os, Stmt &stmt);
 
 class DeclarationStmt : public Stmt {
 public:
-    DeclarationStmt(const char *name, Type type, std::unique_ptr<Expr> value) : name(name), type(type), value(std::move(value)) {};
-    const char *name;
+    DeclarationStmt(istr name, Type type, std::unique_ptr<Expr> value) : name(name), type(type), value(std::move(value)) {};
+    istr name;
     Type type;
     std::unique_ptr<Expr> value;
     virtual std::ostream& show(std::ostream& os);
@@ -227,7 +227,7 @@ public:
 class StructItem : public Item {
 public:
     StructItem(std::vector<Argument> args) : args(args) {};
-    const char *name;
+    istr name;
     std::vector<Argument> args;
     virtual std::ostream& show(std::ostream& os);
     virtual void accept(ItemVisitor &visitor);

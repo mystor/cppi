@@ -9,8 +9,30 @@
 #ifndef __cppl__intern__
 #define __cppl__intern__
 
+#include <iostream>
 #include <string>
 
-const char *intern(std::string str);
+struct istr {
+    const char *data;
+
+    bool operator==(const istr &other) const {
+        return data == other.data;
+    }
+};
+
+std::ostream& operator<<(std::ostream& os, istr &s);
+
+namespace std {
+    template <>
+    struct hash<istr> {
+        std::size_t operator()(const istr &s) const {
+            return hash<const char *>()(s.data);
+        }
+    };
+}
+
+
+istr intern(std::string str);
+
 
 #endif /* defined(__cppl__intern__) */

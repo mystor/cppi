@@ -59,8 +59,8 @@ class Token {
 public:
     union {
         int int_value;
-        const char *ident;
-        const char *str_value;
+        istr ident;
+        istr str_value;
     } _data;
 
     Token(TokenType type);

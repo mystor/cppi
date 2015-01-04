@@ -27,15 +27,15 @@
 // multiple sections. Each of those sections consists of an interned string
 
 struct ProgIdent {
-    ProgIdent(const char* name) { path.push_back(name); };
-    std::vector<const char*> path;
+    ProgIdent(istr name) { path.push_back(name); };
+    std::vector<istr> path;
 
     std::string as_string() {
         std::string str;
         bool first = true;
         for (auto seg : path) {
             if (first) { first = false; } else { str += "::"; }
-            str += seg;
+            str += seg.data;
         }
         return str;
     }
@@ -53,7 +53,7 @@ namespace std {
             // Yeahhh. I should do this better....
             size_t hsh = 0;
             for (auto segment : p.path) {
-                hsh ^= hash<const char *>()(segment);
+                hsh ^= hash<istr>()(segment);
             }
             return hsh;
         }
@@ -75,7 +75,7 @@ struct Function {
 
 // A structure in the language, wow, so amaze
 struct Struct {
-    const char *name;
+    istr name;
 
     // TODO(michael): Attributes ought to not have the argument type...
     std::vector<Argument> *attributes;
@@ -89,8 +89,8 @@ struct CodeUnit {
 };
 
 struct Scope {
-    std::unordered_map<const char*, llvm::Value*> vars;
-    std::unordered_map<const char*, llvm::Type*> types;
+    std::unordered_map<istr, llvm::Value*> vars;
+    std::unordered_map<istr, llvm::Type*> types;
 };
 
 // A program consists of a set of code units. It's produced from those code units mostly

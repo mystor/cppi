@@ -76,12 +76,12 @@ struct CodeUnitBuildVisitor : boost::static_visitor<void> {
         auto ft = llvm::FunctionType::get(get_type(prgm, data.proto->return_type),
                                           arg_types, false);
 
-        auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, data.proto->name, prgm.module);
+        auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, data.proto->name.data, prgm.module);
 
-        if (fn->getName() != data.proto->name) {
+        if (fn->getName() != data.proto->name.data) {
             // This declaration has already been made
             fn->eraseFromParent();
-            fn = prgm.module->getFunction(data.proto->name);
+            fn = prgm.module->getFunction(data.proto->name.data);
 
             // If we have already defined a body, then that's a problem!
             if (! fn->empty()) {
@@ -102,7 +102,7 @@ struct CodeUnitBuildVisitor : boost::static_visitor<void> {
         unsigned idx = 0;
         for (auto ai = fn->arg_begin(); idx != data.proto->arguments.size(); ++ai, ++idx) {
             auto name = data.proto->arguments[idx].name;
-            ai->setName(name);
+            ai->setName(name.data);
 
             if (data.body != NULL) {
                 prgm.scope.vars.emplace(name, ai);

@@ -59,7 +59,7 @@ public:
             // Functions are special!
             value = var->second;
         } else {
-            value = prgm.builder.CreateLoad(var->second, expr->ident);
+            value = prgm.builder.CreateLoad(var->second, expr->ident.data);
         }
     }
     virtual void visit(CallExpr *expr) {
@@ -115,7 +115,7 @@ public:
 
     virtual void visit(DeclarationStmt *stmt) {
         auto alloca = prgm.builder.CreateAlloca(get_type(prgm, stmt->type),
-                                               nullptr, stmt->name);
+                                               nullptr, stmt->name.data);
 
         // TODO: Allow undefined variables
         auto expr = gen_expr(prgm, *stmt->value);
@@ -153,12 +153,12 @@ llvm::Function *generate_function_proto(Program &prgm, FunctionProto &proto) {
     auto ft = llvm::FunctionType::get(get_type(prgm, proto.return_type),
                                       arg_types, false);
 
-    auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, proto.name, prgm.module);
+    auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, proto.name.data, prgm.module);
 
-    if (fn->getName() != proto.name) {
+    if (fn->getName() != proto.name.data) {
         // This declaration has already been made
         fn->eraseFromParent();
-        fn = prgm.module->getFunction(proto.name);
+        fn = prgm.module->getFunction(proto.name.data);
 
         // If we have already defined a body, then that's a problem!
         if (! fn->empty()) {
@@ -174,7 +174,7 @@ llvm::Function *generate_function_proto(Program &prgm, FunctionProto &proto) {
     unsigned idx = 0;
     for (auto ai = fn->arg_begin(); idx != proto.arguments.size(); ++ai, ++idx) {
         auto name = proto.arguments[idx].name;
-        ai->setName(name);
+        ai->setName(name.data);
     }
 
     return fn;
