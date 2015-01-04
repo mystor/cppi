@@ -9,6 +9,9 @@
 #ifndef __cppl__prgm__
 #define __cppl__prgm__
 
+// TODO(michael): This shouldn't be a #define
+#define POINTER_WIDTH 64
+
 #include "ast.h"
 
 #include <memory>
@@ -88,14 +91,14 @@ struct CodeUnit {
     boost::variant<Placeholder, Function, Struct> data;
 };
 
-struct Scope {
+struct Scope { // TODO(michael): These should be indexed by paths, not istrs
     std::unordered_map<istr, llvm::Value*> vars;
     std::unordered_map<istr, llvm::Type*> types;
 };
 
 // A program consists of a set of code units. It's produced from those code units mostly
 struct Program {
-    Scope scope = {};
+    Scope scope;
     llvm::Function * current_function = NULL;
 
     llvm::LLVMContext &context;
@@ -105,7 +108,42 @@ struct Program {
     Program(llvm::LLVMContext &context = llvm::getGlobalContext())
         : context(context),
           module(new llvm::Module("cppi_module", context)),
-          builder(llvm::IRBuilder<>(context)) {}
+          builder(llvm::IRBuilder<>(context)) {
+
+        // TODO(michael): This shouldn't be inside the header file, as its very long.
+        // possibly should even be in its own file (gen_initial_scope?)
+
+        // Build the default Scope
+        std::unordered_map<istr, llvm::Value*> vars;
+        std::unordered_map<istr, llvm::Type*> types;
+
+        // Sized types
+        types.emplace(intern("i8"), llvm::Type::getInt8Ty(context));
+        types.emplace(intern("i16"), llvm::Type::getInt16Ty(context));
+        types.emplace(intern("i32"), llvm::Type::getInt32Ty(context));
+        types.emplace(intern("i64"), llvm::Type::getInt64Ty(context));
+
+        types.emplace(intern("f16"), llvm::Type::getHalfTy(context));
+        types.emplace(intern("f32"), llvm::Type::getFloatTy(context));
+        types.emplace(intern("f64"), llvm::Type::getDoubleTy(context));
+
+        // Integers and floats
+        types.emplace(intern("int"), llvm::Type::getInt32Ty(context));
+        types.emplace(intern("float"), llvm::Type::getFloatTy(context));
+
+        // Booleans
+        types.emplace(intern("bool"), llvm::Type::getInt1Ty(context));
+
+        // Strings
+        auto _string = intern("string");
+        std::vector<llvm::Type *> string_attrs;
+        string_attrs.push_back(llvm::Type::getInt8PtrTy(context)); // Data Store
+        string_attrs.push_back(llvm::Type::getIntNTy(context, POINTER_WIDTH)); // Length
+        auto string_ty = llvm::StructType::create(context, string_attrs, _string.data);
+        types.emplace(_string, string_ty);
+
+        scope = { vars, types };
+    }
 
     std::unordered_map<ProgIdent, CodeUnit> code_units;
 

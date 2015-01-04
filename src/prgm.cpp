@@ -130,6 +130,7 @@ struct CodeUnitBuildVisitor : boost::static_visitor<void> {
     }
 
     void operator()(Struct data) const {
+
         assert(false && "Not implemented yet");
     }
 };

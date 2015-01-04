@@ -4,13 +4,7 @@
 
 // TODO(michael): This is a mess, and should be factored into something sane
 llvm::Type *get_type(Program &prgm, Type &ty) {
-    if (ty.ident == intern("int")) {
-        return llvm::Type::getInt32Ty(prgm.context);
-    } else if (ty.ident == intern("void")) {
-        return llvm::Type::getVoidTy(prgm.context);
-    } else {
-        assert(false && "Invalid Type");
-    }
+    return prgm.scope.types.at(ty.ident); // TODO: Better error than std::out_of_range execption
 }
 
 void gen_item(Program &prgm, Item &item);
