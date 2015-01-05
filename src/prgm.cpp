@@ -67,13 +67,14 @@ struct CodeUnitBuildVisitor : boost::static_visitor<void> {
     }
 
     void operator()(Function data) const {
+        std::cout << "** Building function " << data.proto->name << "\n";
         // Building the function prototype
 
         std::vector<llvm::Type *> arg_types;
         for (auto arg : data.proto->arguments) {
-            arg_types.push_back(get_type(prgm, arg.type));
+            arg_types.push_back(get_type(&prgm.global_scope, arg.type));
         }
-        auto ft = llvm::FunctionType::get(get_type(prgm, data.proto->return_type),
+        auto ft = llvm::FunctionType::get(get_type(&prgm.global_scope, data.proto->return_type),
                                           arg_types, false);
 
         auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, data.proto->name.data, prgm.module);
@@ -94,9 +95,14 @@ struct CodeUnitBuildVisitor : boost::static_visitor<void> {
         }
 
         // Insert it into the global scope!
-        prgm.scope.vars.emplace(data.proto->name, fn);
+        prgm.global_scope.vars.emplace(data.proto->name, fn);
 
-        Scope old_scope = prgm.scope;
+        // TODO(michael): This is really sloppy, it would be nicer to have seperate states
+        // for seperate compilation runs, which contain a ref back to the program...
+        Scope scope = { &prgm.global_scope, std::unordered_map<istr, llvm::Value*>(), std::unordered_map<istr, llvm::Type*>() };
+        FnGenState gen_state(prgm);
+        gen_state.fn = fn;
+        gen_state.scope = &scope;
 
         // Set argument names
         unsigned idx = 0;
@@ -105,24 +111,18 @@ struct CodeUnitBuildVisitor : boost::static_visitor<void> {
             ai->setName(name.data);
 
             if (data.body != NULL) {
-                prgm.scope.vars.emplace(name, ai);
+                gen_state.scope->vars.emplace(name, ai);
             }
         }
 
         if (data.body != NULL) {
             // Creating the function's body!
             auto bb = llvm::BasicBlock::Create(prgm.context, "entry", fn);
-            prgm.builder.SetInsertPoint(bb);
-            prgm.current_function = fn;
+            gen_state.builder.SetInsertPoint(bb);
 
-            // Generate the body!
             for (auto &stmt : *data.body) {
-                gen_stmt(prgm, *stmt);
+                gen_stmt(gen_state, *stmt);
             }
-
-            // Revert to the previous scope state.
-            prgm.scope = old_scope;
-            prgm.current_function = NULL; // TODO(michael): If we ever build nested functions like this, we shouldn't do this
 
             // TODO: Implicit return statements!
             llvm::verifyFunction(*fn);
@@ -130,14 +130,16 @@ struct CodeUnitBuildVisitor : boost::static_visitor<void> {
     }
 
     void operator()(Struct data) const {
-
         assert(false && "Not implemented yet");
     }
 };
 
 void Program::build(CodeUnit *codeunit) {
     assert(codeunit);
-    boost::apply_visitor(CodeUnitBuildVisitor(*this), codeunit->data);
+    if (! codeunit->built) {
+        codeunit->built = true; // TODO(michael): Not _completely_ true yet. Maybe a building flag?
+        boost::apply_visitor(CodeUnitBuildVisitor(*this), codeunit->data);
+    }
 }
 
 void Program::build_all() {

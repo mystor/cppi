@@ -92,23 +92,57 @@ struct CodeUnit {
 };
 
 struct Scope { // TODO(michael): These should be indexed by paths, not istrs
+    Scope *parent;
     std::unordered_map<istr, llvm::Value*> vars;
     std::unordered_map<istr, llvm::Type*> types;
+
+    // TODO: These shouldn't probably be in the header..
+    inline
+    llvm::Value *var(istr name) {
+        std::cout << this << " <-> " << parent << "\n";
+        auto found = vars.find(name);
+        if (found == vars.end()) {
+            return parent != NULL ? parent->var(name) : NULL;
+        } else {
+            assert(found->second != NULL);
+            return found->second;
+        }
+    }
+
+    inline
+    void push_var(istr name, llvm::Value *val) {
+        assert(vars.find(name) == vars.end() && "Cannot push a var twice");
+        vars.emplace(name, val);
+    }
+
+    inline
+    llvm::Type *type(istr name) {
+        auto found = types.find(name);
+        if (found == types.end()) {
+            return parent != NULL ? parent->type(name) : NULL;
+        } else {
+            assert(found->second != NULL);
+            return found->second;
+        }
+    }
+
+    inline
+    void push_type(istr name, llvm::Type *ty) {
+        assert(types.find(name) == types.end() && "Cannot push a type twice");
+        types.emplace(name, ty);
+    }
 };
 
 // A program consists of a set of code units. It's produced from those code units mostly
 struct Program {
-    Scope scope;
-    llvm::Function * current_function = NULL;
+    Scope global_scope;
 
     llvm::LLVMContext &context;
     llvm::Module *module;
-    llvm::IRBuilder<> builder;
 
     Program(llvm::LLVMContext &context = llvm::getGlobalContext())
         : context(context),
-          module(new llvm::Module("cppi_module", context)),
-          builder(llvm::IRBuilder<>(context)) {
+          module(new llvm::Module("cppi_module", context)) {
 
         // TODO(michael): This shouldn't be inside the header file, as its very long.
         // possibly should even be in its own file (gen_initial_scope?)
@@ -142,7 +176,7 @@ struct Program {
         auto string_ty = llvm::StructType::create(context, string_attrs, _string.data);
         types.emplace(_string, string_ty);
 
-        scope = { vars, types };
+        global_scope = { NULL, vars, types };
     }
 
     std::unordered_map<ProgIdent, CodeUnit> code_units;

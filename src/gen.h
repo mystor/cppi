@@ -21,8 +21,17 @@
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Module.h>
 
-llvm::Type *get_type(Program &prgm, Type &ty);
-llvm::Value *gen_expr(Program &prgm, Expr &expr);
-llvm::Value *gen_stmt(Program &prgm, Stmt &stmt);
+struct FnGenState {
+    Program &prgm;
+    Scope *scope;
+    llvm::Function *fn;
+    llvm::IRBuilder<> builder;
+
+    FnGenState(Program &prgm) : prgm(prgm), scope(&prgm.global_scope), fn(NULL), builder(llvm::IRBuilder<>(prgm.context)) {};
+};
+
+llvm::Type *get_type(Scope *scope, Type &ty);
+llvm::Value *gen_expr(FnGenState &st, Expr &expr);
+llvm::Value *gen_stmt(FnGenState &st, Stmt &stmt);
 
 #endif /* defined(__cppl__gen__) */
