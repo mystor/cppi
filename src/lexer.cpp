@@ -12,20 +12,12 @@
 #include "intern.h"
 
 Lexer::Lexer(std::istream *input) : stream(input), cache(TOKEN_EOF) {
-    cache = next_token();
-}
-
-Token::Token(TokenType type) {
-    _type = type;
-}
-
-TokenType Token::type() {
-    return _type;
+    cache = nextToken();
 }
 
 // Let's do some lexing!
 
-Token Lexer::next_token() {
+Token Lexer::nextToken() {
     for (;;) {
         auto first = stream->get();
         switch (first) {
@@ -59,7 +51,7 @@ Token Lexer::next_token() {
                 // Read in the next character
                 first = stream->get();
             }
-            token._data.str_value = intern(chrs);
+            token.data.strValue = intern(chrs);
             return token;
         }
 
@@ -73,11 +65,11 @@ Token Lexer::next_token() {
                 // It's a number!
                 // For now, let's just do integers...
                 auto token = Token(TOKEN_INT);
-                token._data.int_value = first - '0';
+                token.data.intValue = first - '0';
                 first = stream->peek();
                 while ('0' <= first && first <= '9') {
-                    token._data.int_value *= 10;
-                    token._data.int_value += first - '0';
+                    token.data.intValue *= 10;
+                    token.data.intValue += first - '0';
                     stream->get();
                     first = stream->peek();
                 }
@@ -108,7 +100,7 @@ Token Lexer::next_token() {
                 // Get the next char on file!
                 first = stream->peek();
             }
-            token._data.ident = intern(chrs);
+            token.data.ident = intern(chrs);
             if (chrs == "let") { // TODO: This is awful
                 return Token(TOKEN_LET);
             } else if (chrs == "fn") {
@@ -141,13 +133,13 @@ Token Lexer::peek() {
 
 Token Lexer::eat() {
     auto token = cache;
-    cache = next_token();
+    cache = nextToken();
     return token;
 }
 
 Token Lexer::expect(TokenType type) {
     auto token = eat();
-    if (token.type() == type) {
+    if (token.type == type) {
         return token;
     } else {
         std::cerr << "Unexpected token " << token << " expected " << type << "\n";
@@ -156,7 +148,7 @@ Token Lexer::expect(TokenType type) {
 }
 
 bool Lexer::eof() {
-    if (cache.type() == TOKEN_EOF) {
+    if (cache.type == TOKEN_EOF) {
         return true;
     } else {
         return false;
@@ -248,16 +240,16 @@ std::ostream& operator<<(std::ostream& os, TokenType n) {
 }
 
 std::ostream& operator<<(std::ostream& os, Token n) {
-    os << "Token(" << n.type();
-    switch (n.type()) {
+    os << "Token(" << n.type;
+    switch (n.type) {
     case TOKEN_IDENT:
-        os << " " << n._data.ident;
+        os << " " << n.data.ident;
         break;
     case TOKEN_STRING:
-        os << " " << n._data.str_value;
+        os << " " << n.data.strValue;
         break;
     case TOKEN_INT:
-        os << " " << n._data.int_value;
+        os << " " << n.data.intValue;
         break;
     default:
         break;

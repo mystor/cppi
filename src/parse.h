@@ -17,10 +17,10 @@
 std::vector<std::unique_ptr<Item>> parse(Lexer *lex);
 
 // Parse an individual item
-std::unique_ptr<Item> parse_item(Lexer *lex);
+std::unique_ptr<Item> parseItem(Lexer *lex);
 // Parse an individual statement
-std::unique_ptr<Stmt> parse_stmt(Lexer *lex);
+std::unique_ptr<Stmt> parseStmt(Lexer *lex);
 // Parse an expression
-std::unique_ptr<Expr> parse_expr(Lexer *lex);
+std::unique_ptr<Expr> parseExpr(Lexer *lex);
 
 #endif /* defined(__cppl__parse__) */

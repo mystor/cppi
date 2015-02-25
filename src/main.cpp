@@ -49,8 +49,8 @@ int main(int argc, const char * argv[]) {
     }
 
     // Read in the file passed as the first argument
-    std::ifstream file_stream;
-    file_stream.open(argv[1]);
+    std::ifstream fileStream;
+    fileStream.open(argv[1]);
 
     // We'll output to the file passed in as the second argument
     std::error_code ec;
@@ -63,7 +63,7 @@ int main(int argc, const char * argv[]) {
     }
 
     // Parse it!
-    auto lex = Lexer(&file_stream);
+    auto lex = Lexer(&fileStream);
     auto stmts = parse(&lex);
 
     // std::cout << "Result of parsing: \n";
@@ -72,10 +72,9 @@ int main(int argc, const char * argv[]) {
     // }
 
     auto prgm = Program();
-    for (auto &item : stmts) {
-        prgm.add_item(*item);
-    }
+    prgm.addItems(stmts);
     prgm.finalize();
+
     auto mod = prgm.module;
 
     /* DEBUG */
@@ -121,26 +120,26 @@ int main(int argc, const char * argv[]) {
     // llvm::TargetOptions options;
     // TODO: llc line 268
 
-    std::unique_ptr<llvm::TargetMachine> target_machine(target->createTargetMachine(targetTriple.getTriple(),
-                                                                                    llvm::sys::getHostCPUName(),
-                                                                                    "",
-                                                                                    llvm::TargetOptions(),
-                                                                                    llvm::Reloc::Default,
-                                                                                    llvm::CodeModel::Default,
-                                                                                    optLvl));
-    assert(target_machine && "Could not allocate target machine!");
+    std::unique_ptr<llvm::TargetMachine> targetMachine(target->createTargetMachine(targetTriple.getTriple(),
+                                                                                   llvm::sys::getHostCPUName(),
+                                                                                   "",
+                                                                                   llvm::TargetOptions(),
+                                                                                   llvm::Reloc::Default,
+                                                                                   llvm::CodeModel::Default,
+                                                                                   optLvl));
+    assert(targetMachine && "Could not allocate target machine!");
 
     llvm::PassManager passmanager;
     llvm::TargetLibraryInfo *TLI = new llvm::TargetLibraryInfo(targetTriple);
     passmanager.add(TLI);
 
-    if (const llvm::DataLayout *datalayout = target_machine->getSubtargetImpl()->getDataLayout())
+    if (const llvm::DataLayout *datalayout = targetMachine->getSubtargetImpl()->getDataLayout())
         mod->setDataLayout(datalayout);
 
     llvm::formatted_raw_ostream ostream(out->os());
 
     // Ask the target to add backend passes as necessary.
-    if (target_machine->addPassesToEmitFile(passmanager, ostream, llvm::TargetMachine::CGFT_ObjectFile)) {
+    if (targetMachine->addPassesToEmitFile(passmanager, ostream, llvm::TargetMachine::CGFT_ObjectFile)) {
         std::cerr << argv[0] << ": target does not support generation of this"
                   << " file type!\n";
         return 1;

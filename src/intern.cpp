@@ -15,12 +15,12 @@ std::ostream& operator<<(std::ostream& os, istr &s) {
 }
 
 // TODO: This sucks balls right now, should be improved
-std::unordered_set<std::string> string_pool;
+std::unordered_set<std::string> stringPool;
 istr intern(std::string string) {
-    auto interned = string_pool.find(string);
-    if (interned == string_pool.end()) {
-        string_pool.insert(string);
-        interned = string_pool.find(string);
+    auto interned = stringPool.find(string);
+    if (interned == stringPool.end()) {
+        stringPool.insert(string);
+        interned = stringPool.find(string);
     }
 
     return { interned->data(), interned->length() };

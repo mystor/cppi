@@ -13,8 +13,6 @@
 #include <string>
 
 struct istr {
-    /* istr(std::string str); */
-
     const char *data;
     size_t length;
 

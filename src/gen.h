@@ -27,11 +27,11 @@ struct FnGenState {
     llvm::Function *fn;
     llvm::IRBuilder<> builder;
 
-    FnGenState(Program &prgm) : prgm(prgm), scope(&prgm.global_scope), fn(NULL), builder(llvm::IRBuilder<>(prgm.context)) {};
+    FnGenState(Program &prgm) : prgm(prgm), scope(&prgm.globalScope), fn(NULL), builder(llvm::IRBuilder<>(prgm.context)) {};
 };
 
 // llvm::Type *get_type(Scope *scope, Type &ty);
-ValueThing *gen_expr(FnGenState &st, Expr &expr);
-ValueThing *gen_stmt(FnGenState &st, Stmt &stmt);
+ValueThing *genExpr(FnGenState &st, Expr &expr);
+ValueThing *genStmt(FnGenState &st, Stmt &stmt);
 
 #endif /* defined(__cppl__gen__) */

@@ -36,11 +36,11 @@ std::ostream& operator<<(std::ostream& os, Argument &arg);
 
 class FunctionProto {
 public:
-    FunctionProto(istr name, std::vector<Argument> arguments, Type return_type)
-        : name(name), arguments(arguments), return_type(return_type) {};
+    FunctionProto(istr name, std::vector<Argument> arguments, Type returnType)
+        : name(name), arguments(arguments), returnType(returnType) {};
     istr name;
     std::vector<Argument> arguments;
-    Type return_type;
+    Type returnType;
 };
 
 class Branch {

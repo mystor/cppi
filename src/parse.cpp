@@ -1,21 +1,21 @@
 #include <assert.h>
 #include "parse.h"
 
-std::vector<std::unique_ptr<Item>> parse_items(Lexer *lex) {
+std::vector<std::unique_ptr<Item>> parseItems(Lexer *lex) {
     std::vector<std::unique_ptr<Item>> items;
     while (! lex->eof()) {
-        items.push_back(parse_item(lex));
+        items.push_back(parseItem(lex));
     }
     return std::move(items);
 }
 
-std::vector<std::unique_ptr<Stmt>> parse_stmts(Lexer *lex) {
+std::vector<std::unique_ptr<Stmt>> parseStmts(Lexer *lex) {
     std::vector<std::unique_ptr<Stmt>> stmts;
     while (! lex->eof()) {
-        stmts.push_back(parse_stmt(lex));
+        stmts.push_back(parseStmt(lex));
 
         // Eat an intervening semicolon
-        if (lex->peek().type() == TOKEN_SEMI) {
+        if (lex->peek().type == TOKEN_SEMI) {
             lex->eat();
         } else {
             break;
@@ -24,28 +24,28 @@ std::vector<std::unique_ptr<Stmt>> parse_stmts(Lexer *lex) {
     return std::move(stmts);
 }
 
-Type parse_type(Lexer *lex) {
+Type parseType(Lexer *lex) {
     // TODO: Implement
-    auto ident = lex->expect(TOKEN_IDENT)._data.ident;
+    auto ident = lex->expect(TOKEN_IDENT).data.ident;
     return Type(ident);
 }
 
-Argument parse_argument(Lexer *lex) {
-    auto ident = lex->expect(TOKEN_IDENT)._data.ident;
+Argument parseArgument(Lexer *lex) {
+    auto ident = lex->expect(TOKEN_IDENT).data.ident;
     lex->expect(TOKEN_COLON);
-    return Argument(ident, parse_type(lex));
+    return Argument(ident, parseType(lex));
 }
 
-FunctionProto parse_function_proto(Lexer *lex) {
+FunctionProto parseFunctionProto(Lexer *lex) {
     lex->expect(TOKEN_FN);
-    auto name = lex->expect(TOKEN_IDENT)._data.ident;
+    auto name = lex->expect(TOKEN_IDENT).data.ident;
     lex->expect(TOKEN_LPAREN);
 
     std::vector<Argument> arguments;
-    if (lex->peek().type() != TOKEN_RPAREN) {
+    if (lex->peek().type != TOKEN_RPAREN) {
         for (;;) {
-            arguments.push_back(parse_argument(lex));
-            if (lex->peek().type() == TOKEN_COMMA) {
+            arguments.push_back(parseArgument(lex));
+            if (lex->peek().type == TOKEN_COMMA) {
                 lex->eat();
             } else { break; }
         }
@@ -53,24 +53,24 @@ FunctionProto parse_function_proto(Lexer *lex) {
 
     lex->expect(TOKEN_RPAREN);
 
-    auto return_type = TYPE_NULL;
-    if (lex->peek().type() == TOKEN_COLON) {
+    auto returnType = TYPE_NULL;
+    if (lex->peek().type == TOKEN_COLON) {
         lex->eat();
-        return_type = parse_type(lex);
+        returnType = parseType(lex);
     }
 
-    return FunctionProto(name, arguments, return_type);
+    return FunctionProto(name, arguments, returnType);
 }
 
-std::unique_ptr<Item> parse_item(Lexer *lex) {
-    auto first_type = lex->peek().type();
-    switch (first_type) {
+std::unique_ptr<Item> parseItem(Lexer *lex) {
+    auto firstType = lex->peek().type;
+    switch (firstType) {
     case TOKEN_FN: {
-        auto proto = parse_function_proto(lex);
+        auto proto = parseFunctionProto(lex);
 
         lex->expect(TOKEN_LBRACE);
         // The body of the function
-        auto body = parse_stmts(lex);
+        auto body = parseStmts(lex);
         lex->expect(TOKEN_RBRACE);
 
         return std::make_unique<FunctionItem>(proto, std::move(body));
@@ -78,10 +78,10 @@ std::unique_ptr<Item> parse_item(Lexer *lex) {
 
     case TOKEN_FFI: {
         lex->eat();
-        first_type = lex->peek().type();
-        switch (first_type) {
+        firstType = lex->peek().type;
+        switch (firstType) {
         case TOKEN_FN: {
-            auto proto = parse_function_proto(lex);
+            auto proto = parseFunctionProto(lex);
             lex->expect(TOKEN_SEMI);
 
             return std::make_unique<FFIFunctionItem>(proto);
@@ -106,45 +106,45 @@ std::unique_ptr<Item> parse_item(Lexer *lex) {
     };
 }
 
-std::unique_ptr<Stmt> parse_stmt(Lexer *lex) {
-    auto first_type = lex->peek().type();
-    if (first_type == TOKEN_LET) { // TODO: Don't require the let in the future (it'll only take 1 token more lookahead)
+std::unique_ptr<Stmt> parseStmt(Lexer *lex) {
+    auto firstType = lex->peek().type;
+    if (firstType == TOKEN_LET) { // TODO: Don't require the let in the future (it'll only take 1 token more lookahead)
         lex->eat();
         auto var = lex->expect(TOKEN_IDENT);
         lex->expect(TOKEN_COLON);
         // For now, we're requiring types EVERYWHERE!
-        auto type = parse_type(lex);
+        auto type = parseType(lex);
         lex->expect(TOKEN_EQ);
-        auto expr = parse_expr(lex);
+        auto expr = parseExpr(lex);
 
-        return std::make_unique<DeclarationStmt>(var._data.ident, type, std::move(expr));
-    } else if (first_type == TOKEN_RETURN) {
+        return std::make_unique<DeclarationStmt>(var.data.ident, type, std::move(expr));
+    } else if (firstType == TOKEN_RETURN) {
         lex->eat();
-        if (lex->peek().type() == TOKEN_SEMI) {
+        if (lex->peek().type == TOKEN_SEMI) {
             return std::make_unique<ReturnStmt>(nullptr);
         } else {
-            auto value = parse_expr(lex);
+            auto value = parseExpr(lex);
             return std::make_unique<ReturnStmt>(std::move(value));
         }
-    } else if (first_type == TOKEN_SEMI || first_type == TOKEN_RBRACE) {
+    } else if (firstType == TOKEN_SEMI || firstType == TOKEN_RBRACE) {
         return std::make_unique<EmptyStmt>();
     } else {
-        auto expr = parse_expr(lex);
+        auto expr = parseExpr(lex);
         return std::make_unique<ExprStmt>(std::move(expr));
     }
 }
 
-std::vector<Branch> parse_if(Lexer *lex) {
+std::vector<Branch> parseIf(Lexer *lex) {
     lex->expect(TOKEN_IF);
-    auto cond = parse_expr(lex);
+    auto cond = parseExpr(lex);
     lex->expect(TOKEN_LBRACE);
-    auto body = parse_stmts(lex);
+    auto body = parseStmts(lex);
     lex->expect(TOKEN_RBRACE);
 
-    if (lex->peek().type() == TOKEN_ELSE) {
+    if (lex->peek().type == TOKEN_ELSE) {
         lex->eat();
-        if (lex->peek().type() == TOKEN_IF) { // There is an else if { block }
-            auto rest = parse_if(lex);
+        if (lex->peek().type == TOKEN_IF) { // There is an else if { block }
+            auto rest = parseIf(lex);
             rest.insert(rest.begin(), Branch(std::move(cond), std::move(body)));
 
             return rest;
@@ -152,9 +152,9 @@ std::vector<Branch> parse_if(Lexer *lex) {
             std::vector<Branch> branches;
             branches.push_back(Branch(std::move(cond), std::move(body)));
             lex->expect(TOKEN_LBRACE);
-            auto els_body = parse_stmts(lex);
+            auto elsBody = parseStmts(lex);
             lex->expect(TOKEN_RBRACE);
-            branches.push_back(Branch(nullptr, std::move(els_body)));
+            branches.push_back(Branch(nullptr, std::move(elsBody)));
 
             return branches;
         }
@@ -165,15 +165,15 @@ std::vector<Branch> parse_if(Lexer *lex) {
     }
 }
 
-std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
-    auto tok_type = lex->peek().type();
+std::unique_ptr<Expr> parseExprVal(Lexer *lex) {
+    auto tokType = lex->peek().type;
 
-    switch (tok_type) {
+    switch (tokType) {
     case TOKEN_STRING: {
-        return std::make_unique<StringExpr>(lex->eat()._data.str_value);
+        return std::make_unique<StringExpr>(lex->eat().data.strValue);
     }
     case TOKEN_INT: {
-        return std::make_unique<IntExpr>(lex->eat()._data.int_value);
+        return std::make_unique<IntExpr>(lex->eat().data.intValue);
     }
     case TOKEN_TRUE: {
         lex->eat();
@@ -184,16 +184,16 @@ std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
         return std::make_unique<BoolExpr>(false);
     }
     case TOKEN_IDENT: {
-        return std::make_unique<IdentExpr>(lex->eat()._data.ident);
+        return std::make_unique<IdentExpr>(lex->eat().data.ident);
     }
     case TOKEN_LPAREN: {
         lex->eat();
-        auto expr = parse_expr(lex);
+        auto expr = parseExpr(lex);
         lex->expect(TOKEN_RPAREN);
         return expr;
     }
     case TOKEN_IF: {
-        auto branches = parse_if(lex);
+        auto branches = parseIf(lex);
         return std::make_unique<IfExpr>(std::move(branches));
     }
     default: {
@@ -203,20 +203,20 @@ std::unique_ptr<Expr> parse_expr_val(Lexer *lex) {
     }
 }
 
-std::unique_ptr<Expr> parse_expr_access(Lexer *lex) {
-    auto expr = parse_expr_val(lex);
+std::unique_ptr<Expr> parseExprAccess(Lexer *lex) {
+    auto expr = parseExprVal(lex);
     for (;;) {
-        switch (lex->peek().type()) {
+        switch (lex->peek().type) {
         case TOKEN_LPAREN: {
             // Parse some args!
             lex->eat();
             std::vector<std::unique_ptr<Expr>> args;
             for (;;) {
-                if (lex->peek().type() == TOKEN_RPAREN) {
+                if (lex->peek().type == TOKEN_RPAREN) {
                     break;
                 }
-                args.push_back(parse_expr(lex));
-                switch (lex->peek().type()) {
+                args.push_back(parseExpr(lex));
+                switch (lex->peek().type) {
                 case TOKEN_COMMA:
                     lex->eat();
                     continue;
@@ -239,23 +239,23 @@ std::unique_ptr<Expr> parse_expr_access(Lexer *lex) {
     return expr;
 }
 
-std::unique_ptr<Expr> parse_expr_tdm(Lexer *lex) {
-    auto expr = parse_expr_access(lex);
+std::unique_ptr<Expr> parseExprTdm(Lexer *lex) {
+    auto expr = parseExprAccess(lex);
     for (;;) {
-        switch (lex->peek().type()) {
+        switch (lex->peek().type) {
         case TOKEN_TIMES: {
             lex->eat();
-            auto rhs = parse_expr_access(lex);
+            auto rhs = parseExprAccess(lex);
             expr = std::make_unique<InfixExpr>(OPERATION_TIMES, std::move(expr), std::move(rhs));
         } continue;
         case TOKEN_DIVIDE: {
             lex->eat();
-            auto rhs = parse_expr_access(lex);
+            auto rhs = parseExprAccess(lex);
             expr = std::make_unique<InfixExpr>(OPERATION_DIVIDE, std::move(expr), std::move(rhs));
         } continue;
         case TOKEN_MODULO: {
             lex->eat();
-            auto rhs = parse_expr_access(lex);
+            auto rhs = parseExprAccess(lex);
             expr = std::make_unique<InfixExpr>(OPERATION_MODULO, std::move(expr), std::move(rhs));
         } continue;
         default: break;
@@ -265,18 +265,18 @@ std::unique_ptr<Expr> parse_expr_tdm(Lexer *lex) {
     return expr;
 }
 
-std::unique_ptr<Expr> parse_expr_pm(Lexer *lex) {
-    auto expr = parse_expr_tdm(lex);
+std::unique_ptr<Expr> parseExprPm(Lexer *lex) {
+    auto expr = parseExprTdm(lex);
     for (;;) {
-        switch (lex->peek().type()) {
+        switch (lex->peek().type) {
         case TOKEN_PLUS: {
             lex->eat();
-            auto rhs = parse_expr_access(lex);
+            auto rhs = parseExprAccess(lex);
             expr = std::make_unique<InfixExpr>(OPERATION_PLUS, std::move(expr), std::move(rhs));
         } continue;
         case TOKEN_DIVIDE: {
             lex->eat();
-            auto rhs = parse_expr_access(lex);
+            auto rhs = parseExprAccess(lex);
             expr = std::make_unique<InfixExpr>(OPERATION_MINUS, std::move(expr), std::move(rhs));
         } continue;
         default: break;
@@ -286,12 +286,12 @@ std::unique_ptr<Expr> parse_expr_pm(Lexer *lex) {
     return expr;
 }
 
-std::unique_ptr<Expr> parse_expr(Lexer *lex) {
-    return parse_expr_pm(lex);
+std::unique_ptr<Expr> parseExpr(Lexer *lex) {
+    return parseExprPm(lex);
 }
 
 std::vector<std::unique_ptr<Item>> parse(Lexer *lex) {
-    auto items = parse_items(lex);
+    auto items = parseItems(lex);
     if (! lex->eof()) {
         std::cerr << "Unexpected " << lex->peek() << "; expected EOF\n";
         assert(false && "Expected end of file");

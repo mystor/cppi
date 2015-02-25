@@ -34,10 +34,10 @@ void Builtin::init(Program &p) {
 
     boolean = p.thing<PrimTypeThing>(llvm::Type::getInt1Ty(p.context));
 
-    std::vector<llvm::Type *> string_attrs = { llvm::Type::getInt8PtrTy(p.context), llvm::Type::getIntNTy(p.context, p.pointer_width) };
-    auto string_ty = llvm::StructType::create(p.context, string_attrs, "string");
+    std::vector<llvm::Type *> stringAttrs = { llvm::Type::getInt8PtrTy(p.context), llvm::Type::getIntNTy(p.context, p.pointerWidth) };
+    auto stringTy = llvm::StructType::create(p.context, stringAttrs, "string");
 
-    string = p.thing<PrimTypeThing>(string_ty);
+    string = p.thing<PrimTypeThing>(stringTy);
 }
 
 
@@ -47,30 +47,15 @@ llvm::Function *llFromProto(Program &prgm, FunctionProto *proto) {
 
     std::vector<llvm::Type *> arg_types;
     for (auto arg : proto->arguments) {
-        arg_types.push_back(prgm.GetType(&prgm.global_scope, arg.type)->llType());
+        arg_types.push_back(prgm.getType(&prgm.globalScope, arg.type)->llType());
     }
-    auto ft = llvm::FunctionType::get(prgm.GetType(&prgm.global_scope, proto->return_type)->llType(),
+    auto ft = llvm::FunctionType::get(prgm.getType(&prgm.globalScope, proto->returnType)->llType(),
                                       arg_types, false);
 
     auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, proto->name.data, prgm.module);
 
     if (fn->getName() != proto->name.data) {
         assert(false && "Function Redefinition");
-
-        /*
-        // This declaration has already been made
-        fn->eraseFromParent();
-        fn = prgm.module->getFunction(proto->name.data);
-
-        // If we have already defined a body, then that's a problem!
-        if (! fn->empty()) {
-            std::cerr << "Error: Redefinition of function " << proto->name << ".";
-            assert(false && "Function Redefinition");
-        }
-
-        // Check if the argument list is the same
-        // TODO: Implement
-        */
     }
 
     // Set argument names
@@ -114,7 +99,7 @@ struct FunctionThing : ValueThing {
         gs.builder.SetInsertPoint(bb);
 
         for (auto &stmt : *body) {
-            gen_stmt(gs, *stmt);
+            genStmt(gs, *stmt);
         }
 
         llvm::verifyFunction(*fn);
@@ -168,7 +153,6 @@ struct StructDefThing : TypeThing {
     llvm::Type *llType() {
         if (typeImpl != NULL) return typeImpl;
 
-
         assert(false && "Unimplemented!");
     }
 
@@ -178,7 +162,7 @@ struct StructDefThing : TypeThing {
 };
 
 // Add an item (from the AST) to the Program. This doesn't build the item, it just registers it
-void Program::add_item(Item &item) {
+void Program::addItem(Item &item) {
     struct AddItemVisitor : public ItemVisitor {
         AddItemVisitor(Program &prgm) : prgm(prgm) {};
         Program &prgm;
@@ -186,19 +170,19 @@ void Program::add_item(Item &item) {
         virtual void visit(FunctionItem *item) {
             auto fthing = prgm.thing<FunctionThing>(&item->proto, &item->body);
 
-            prgm.global_scope.push_thing(item->proto.name, fthing);
+            prgm.globalScope.addThing(item->proto.name, fthing);
         };
 
         virtual void visit(StructItem *item) {
             auto sdthing = prgm.thing<StructDefThing>(&item->args);
 
-            prgm.global_scope.push_thing(item->name, sdthing);
+            prgm.globalScope.addThing(item->name, sdthing);
         };
 
         virtual void visit(FFIFunctionItem *item) {
             auto fthing = prgm.thing<FFIFunctionThing>(&item->proto);
 
-            prgm.global_scope.push_thing(item->proto.name, fthing);
+            prgm.globalScope.addThing(item->proto.name, fthing);
         };
 
         virtual void visit(EmptyItem *) { /* pass */ };
@@ -208,9 +192,9 @@ void Program::add_item(Item &item) {
     item.accept(visitor);
 }
 
-void Program::add_items(std::vector<std::unique_ptr<Item>> &items) {
+void Program::addItems(std::vector<std::unique_ptr<Item>> &items) {
     for (auto &item : items) {
-        add_item(*item);
+        addItem(*item);
     }
 }
 
@@ -223,95 +207,3 @@ void Program::finalize() {
         things[i]->finalize();
     }
 }
-
-/*
-struct CodeUnitBuildVisitor : boost::static_visitor<void> {
-    CodeUnitBuildVisitor(Program &prgm) : prgm(prgm) {};
-    Program &prgm;
-
-    void operator()(Placeholder) const {
-        assert(false && "Cannot build a placeholder Code Unit");
-    }
-
-    void operator()(Function data) const {
-        std::cout << "** Building function " << data.proto->name << "\n";
-        // Building the function prototype
-
-        std::vector<llvm::Type *> arg_types;
-        for (auto arg : data.proto->arguments) {
-            arg_types.push_back(get_type(&prgm.global_scope, arg.type));
-        }
-        auto ft = llvm::FunctionType::get(get_type(&prgm.global_scope, data.proto->return_type),
-                                          arg_types, false);
-
-        auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, data.proto->name.data, prgm.module);
-
-        if (fn->getName() != data.proto->name.data) {
-            // This declaration has already been made
-            fn->eraseFromParent();
-            fn = prgm.module->getFunction(data.proto->name.data);
-
-            // If we have already defined a body, then that's a problem!
-            if (! fn->empty()) {
-                std::cerr << "Error: Redefinition of function " << data.proto->name << ".";
-                assert(false && "Function Redefinition");
-            }
-
-            // Check if the argument list is the same
-            // TODO: Implement
-        }
-
-        // Insert it into the global scope!
-        prgm.global_scope.vars.emplace(data.proto->name, fn);
-
-        // TODO(michael): This is really sloppy, it would be nicer to have seperate states
-        // for seperate compilation runs, which contain a ref back to the program...
-        Scope scope = { &prgm.global_scope, std::unordered_map<istr, llvm::Value*>(), std::unordered_map<istr, llvm::Type*>() };
-        FnGenState gen_state(prgm);
-        gen_state.fn = fn;
-        gen_state.scope = &scope;
-
-        // Set argument names
-        unsigned idx = 0;
-        for (auto ai = fn->arg_begin(); idx != data.proto->arguments.size(); ++ai, ++idx) {
-            auto name = data.proto->arguments[idx].name;
-            ai->setName(name.data);
-
-            if (data.body != NULL) {
-                gen_state.scope->vars.emplace(name, ai);
-            }
-        }
-
-        if (data.body != NULL) {
-            // Creating the function's body!
-            auto bb = llvm::BasicBlock::Create(prgm.context, "entry", fn);
-            gen_state.builder.SetInsertPoint(bb);
-
-            for (auto &stmt : *data.body) {
-                gen_stmt(gen_state, *stmt);
-            }
-
-            // TODO: Implicit return statements!
-            llvm::verifyFunction(*fn);
-        }
-    }
-
-    void operator()(Struct data) const {
-        assert(false && "Not implemented yet");
-    }
-};
-
-void Program::build(CodeUnit *codeunit) {
-    assert(codeunit);
-    if (! codeunit->built) {
-        codeunit->built = true; // TODO(michael): Not _completely_ true yet. Maybe a building flag?
-        boost::apply_visitor(CodeUnitBuildVisitor(*this), codeunit->data);
-    }
-}
-
-void Program::build_all() {
-    for (auto &bucket : code_units) {
-        build(&bucket.second);
-    }
-}
-*/

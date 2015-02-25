@@ -55,16 +55,15 @@ std::ostream& operator<<(std::ostream& os, TokenType n);
 
 // An object representing a token
 class Token {
-    TokenType _type;
 public:
+    TokenType type;
     union {
-        int int_value;
+        int intValue;
         istr ident;
-        istr str_value;
-    } _data;
+        istr strValue;
+    } data;
 
-    Token(TokenType type);
-    TokenType type();
+    Token(TokenType type) : type(type) {};
 };
 
 std::ostream& operator<<(std::ostream& os, Token n);
@@ -74,7 +73,7 @@ class Lexer {
     std::istream *stream;
     Token cache;
 
-    Token next_token();
+    Token nextToken();
 public:
     Lexer(std::istream *input);
     Token peek();

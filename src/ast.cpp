@@ -166,7 +166,7 @@ std::ostream& FunctionItem::show(std::ostream &os) {
         if (first) first = false; else os << ", ";
         os << *i;
     }
-    os << "): " << proto.return_type << " {\n";
+    os << "): " << proto.returnType << " {\n";
     for (auto i = body.begin(); i != body.end(); i++) {
         os << **i;
     }
@@ -194,7 +194,7 @@ std::ostream& FFIFunctionItem::show(std::ostream &os) {
         if (first) first = false; else os << ", ";
         os << *i;
     }
-    return os << "): " << proto.return_type << ";";
+    return os << "): " << proto.returnType << ";";
 }
 
 void FFIFunctionItem::accept(ItemVisitor &visitor) { visitor.visit(this); }
