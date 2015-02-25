@@ -9,9 +9,6 @@
 #ifndef __cppl__prgm__
 #define __cppl__prgm__
 
-// TODO(michael): This shouldn't be a #define
-#define POINTER_WIDTH 64
-
 #include "ast.h"
 
 #include <memory>
@@ -26,6 +23,7 @@
 #include <llvm/IR/Module.h>
 #include <boost/variant.hpp>
 
+/*
 // This is some nasty mess to enable the hashing of an object consisting of
 // multiple sections. Each of those sections consists of an interned string
 
@@ -63,6 +61,9 @@ namespace std {
     };
 }
 
+*/
+
+/*
 struct Placeholder {};
 
 // This is a function in the language It is a toplevel structure, and has dependencies on other toplevel structures etc
@@ -90,102 +91,127 @@ struct CodeUnit {
     bool built = false;
     boost::variant<Placeholder, Function, Struct> data;
 };
+*/
 
-struct Scope { // TODO(michael): These should be indexed by paths, not istrs
+struct TypeThing;
+struct ValueThing;
+
+struct Thing {
+    virtual ValueThing *asValue() { return NULL; }
+    virtual TypeThing *asType() { return NULL; }
+
+    virtual void finalize() {};
+    virtual void print(llvm::raw_ostream &os) = 0;
+};
+
+struct TypeThing : public virtual Thing {
+    virtual llvm::Type *llType() = 0;
+};
+
+struct ValueThing : public virtual Thing {
+    virtual llvm::Value *llValue() = 0;
+    virtual TypeThing *typeOf() = 0;
+};
+
+struct Scope {
     Scope *parent;
-    std::unordered_map<istr, llvm::Value*> vars;
-    std::unordered_map<istr, llvm::Type*> types;
+    std::unordered_map<istr, Thing *> things;
 
-    // TODO: These shouldn't probably be in the header..
-    inline
-    llvm::Value *var(istr name) {
-        std::cout << this << " <-> " << parent << "\n";
-        auto found = vars.find(name);
-        if (found == vars.end()) {
-            return parent != NULL ? parent->var(name) : NULL;
+    Thing *thing(istr name) {
+        assert(this != parent);
+
+        auto found = things.find(name);
+        if (found == things.end()) {
+            return parent != NULL ? parent->thing(name) : NULL;
         } else {
             assert(found->second != NULL);
             return found->second;
         }
     }
 
-    inline
-    void push_var(istr name, llvm::Value *val) {
-        assert(vars.find(name) == vars.end() && "Cannot push a var twice");
-        vars.emplace(name, val);
-    }
+    void push_thing(istr name, Thing *thing) {
+        assert(things.find(name) == things.end());
 
-    inline
-    llvm::Type *type(istr name) {
-        auto found = types.find(name);
-        if (found == types.end()) {
-            return parent != NULL ? parent->type(name) : NULL;
-        } else {
-            assert(found->second != NULL);
-            return found->second;
-        }
+        things.emplace(name, thing);
     }
+};
 
-    inline
-    void push_type(istr name, llvm::Type *ty) {
-        assert(types.find(name) == types.end() && "Cannot push a type twice");
-        types.emplace(name, ty);
-    }
+struct Program;
+struct Builtin {
+    Builtin() {};
+
+    void init(Program &p);
+
+    Thing *string;
+    Thing *i8;
+    Thing *i16;
+    Thing *i32;
+    Thing *i64;
+    Thing *f16;
+    Thing *f32;
+    Thing *f64;
+    Thing *boolean;
 };
 
 // A program consists of a set of code units. It's produced from those code units mostly
 struct Program {
+    uint32_t pointer_width = 8 * sizeof(void *); // TODO(michael): Make this actually represent the pointer width of target platform
+
+    Builtin builtin;
     Scope global_scope;
 
     llvm::LLVMContext &context;
     llvm::Module *module;
 
+    // A place for storing things
+    std::vector<std::unique_ptr<Thing>> things;
+
     Program(llvm::LLVMContext &context = llvm::getGlobalContext())
         : context(context),
           module(new llvm::Module("cppi_module", context)) {
 
-        // TODO(michael): This shouldn't be inside the header file, as its very long.
-        // possibly should even be in its own file (gen_initial_scope?)
 
-        // Build the default Scope
-        std::unordered_map<istr, llvm::Value*> vars;
-        std::unordered_map<istr, llvm::Type*> types;
+        // Create the builtin objects and types
+        builtin.init(*this);
 
-        // Sized types
-        types.emplace(intern("i8"), llvm::Type::getInt8Ty(context));
-        types.emplace(intern("i16"), llvm::Type::getInt16Ty(context));
-        types.emplace(intern("i32"), llvm::Type::getInt32Ty(context));
-        types.emplace(intern("i64"), llvm::Type::getInt64Ty(context));
+        global_scope = { NULL, std::unordered_map<istr, Thing*>() };
 
-        types.emplace(intern("f16"), llvm::Type::getHalfTy(context));
-        types.emplace(intern("f32"), llvm::Type::getFloatTy(context));
-        types.emplace(intern("f64"), llvm::Type::getDoubleTy(context));
+        // Expose the builtin things to the cppl program
+#define exposeBuiltin(name) global_scope.push_thing(intern(#name), builtin.name)
+        exposeBuiltin(i8);
+        exposeBuiltin(i16);
+        exposeBuiltin(i32);
+        exposeBuiltin(i64);
 
-        // Integers and floats
-        types.emplace(intern("int"), llvm::Type::getInt32Ty(context));
-        types.emplace(intern("float"), llvm::Type::getFloatTy(context));
+        exposeBuiltin(f16);
+        exposeBuiltin(f32);
+        exposeBuiltin(f64);
 
-        // Booleans
-        types.emplace(intern("bool"), llvm::Type::getInt1Ty(context));
-
-        // Strings
-        auto _string = intern("string");
-        std::vector<llvm::Type *> string_attrs;
-        string_attrs.push_back(llvm::Type::getInt8PtrTy(context)); // Data Store
-        string_attrs.push_back(llvm::Type::getIntNTy(context, POINTER_WIDTH)); // Length
-        auto string_ty = llvm::StructType::create(context, string_attrs, _string.data);
-        types.emplace(_string, string_ty);
-
-        global_scope = { NULL, vars, types };
+        exposeBuiltin(string);
+        exposeBuiltin(boolean);
+#undef exposeBuiltin
     }
 
-    std::unordered_map<ProgIdent, CodeUnit> code_units;
+    // A templated function for creating classes
+    template< class T, class... Args >
+    T *thing( Args&&... args ) {
+        std::unique_ptr<T> u = std::make_unique<T>( *this, args... );
+        T *p = &*u;
+        things.push_back(std::move(u));
+        return p;
+    }
+
+    TypeThing *GetType(Scope *scope, Type &ty) {
+        auto thing = scope->thing(ty.ident);
+        assert(thing != NULL);
+
+        return thing->asType();
+    }
 
     void add_item(Item &item);
     void add_items(std::vector<std::unique_ptr<Item>> &items);
 
-    void build(CodeUnit *codeunit);
-    void build_all();
+    void finalize();
 };
 
 #endif /* defined(__cppl__prgm__) */

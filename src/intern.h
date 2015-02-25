@@ -13,7 +13,10 @@
 #include <string>
 
 struct istr {
+    /* istr(std::string str); */
+
     const char *data;
+    size_t length;
 
     bool operator==(const istr &other) const {
         return data == other.data;
@@ -31,8 +34,6 @@ namespace std {
     };
 }
 
-
 istr intern(std::string str);
-
 
 #endif /* defined(__cppl__intern__) */

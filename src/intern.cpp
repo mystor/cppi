@@ -8,6 +8,7 @@
 
 #include "intern.h"
 #include <unordered_set>
+#include <assert.h>
 
 std::ostream& operator<<(std::ostream& os, istr &s) {
     return os << s.data;
@@ -19,9 +20,10 @@ istr intern(std::string string) {
     auto interned = string_pool.find(string);
     if (interned == string_pool.end()) {
         string_pool.insert(string);
-
-        return { string_pool.find(string)->data() };
-    } else {
-        return { interned->data() };
+        interned = string_pool.find(string);
     }
+
+    return { interned->data(), interned->length() };
 }
+
+// istr::istr() : length(0) { data = istr("").data; } // TODO: This could probably be done more efficiently

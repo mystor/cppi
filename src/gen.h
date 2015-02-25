@@ -30,8 +30,8 @@ struct FnGenState {
     FnGenState(Program &prgm) : prgm(prgm), scope(&prgm.global_scope), fn(NULL), builder(llvm::IRBuilder<>(prgm.context)) {};
 };
 
-llvm::Type *get_type(Scope *scope, Type &ty);
-llvm::Value *gen_expr(FnGenState &st, Expr &expr);
-llvm::Value *gen_stmt(FnGenState &st, Stmt &stmt);
+// llvm::Type *get_type(Scope *scope, Type &ty);
+ValueThing *gen_expr(FnGenState &st, Expr &expr);
+ValueThing *gen_stmt(FnGenState &st, Stmt &stmt);
 
 #endif /* defined(__cppl__gen__) */

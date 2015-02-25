@@ -1,6 +1,6 @@
-FFI fn putchar(chr: int): int;
+FFI fn putchar(chr: i32): i32;
 
-fn print_hello(): bool {
+fn print_hello(): boolean {
     putchar(72);
     putchar(101);
     putchar(108);
@@ -10,7 +10,7 @@ fn print_hello(): bool {
     return true;
 }
 
-fn print_world(): bool {
+fn print_world(): boolean {
     putchar(87);
     putchar(111);
     putchar(114);
@@ -23,7 +23,12 @@ fn print_world(): bool {
     return true;
 }
 
+fn hi(s: string): i32 {
+    return 5;
+}
+
 fn main(): i32 {
+    hi("foo");
     print_hello();
     putchar(32);
     print_world();

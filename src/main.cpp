@@ -66,19 +66,20 @@ int main(int argc, const char * argv[]) {
     auto lex = Lexer(&file_stream);
     auto stmts = parse(&lex);
 
-    std::cout << "Result of parsing: \n";
-    for (auto &stmt : stmts) {
-        std::cout << *stmt << ";\n";
-    }
+    // std::cout << "Result of parsing: \n";
+    // for (auto &stmt : stmts) {
+    //     std::cout << *stmt << ";\n";
+    // }
 
     auto prgm = Program();
     for (auto &item : stmts) {
         prgm.add_item(*item);
     }
-    prgm.build_all();
+    prgm.finalize();
     auto mod = prgm.module;
 
-    mod->dump();
+    /* DEBUG */
+    // mod->dump();
 
     llvm::InitializeNativeTarget();
     llvm::InitializeNativeTargetAsmPrinter();

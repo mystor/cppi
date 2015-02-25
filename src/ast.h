@@ -18,7 +18,7 @@ class Stmt;
 
 class Type {
 public:
-    Type() { ident = intern("void"); };
+    Type() : ident(intern("void")) {};
     Type(istr ident) : ident(ident) {};
     istr ident; // interned
 };
@@ -226,7 +226,7 @@ public:
 
 class StructItem : public Item {
 public:
-    StructItem(std::vector<Argument> args) : args(args) {};
+    StructItem(istr name, std::vector<Argument> args) : name(name), args(args) {};
     istr name;
     std::vector<Argument> args;
     virtual std::ostream& show(std::ostream& os);
