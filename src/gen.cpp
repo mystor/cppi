@@ -80,12 +80,12 @@ public:
         assert(false && "Unimplemented");
     }
     virtual void visit(IdentExpr *expr) {
-        Thing *AThing = st.scope->thing(expr->ident);
+        Thing *aThing = st.scope->thing(expr->ident);
 
-        assert(AThing != NULL);
+        assert(aThing != NULL);
 
-        thing = AThing->asValue();
-        assert(AThing->asValue());
+        thing = aThing->asValue();
+        assert(aThing->asValue());
     }
     virtual void visit(CallExpr *expr) {
         auto callee = genExpr(st, *expr->callee)->asValue()->llValue();

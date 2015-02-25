@@ -48,6 +48,8 @@ struct Scope {
     Scope *parent;
     std::unordered_map<istr, Thing *> things;
 
+    explicit Scope(Scope *parent) : parent(parent) {}
+
     Thing *thing(istr name) {
         assert(this != parent);
 
@@ -89,13 +91,16 @@ struct Program {
     uint32_t pointerWidth = 8 * sizeof(void *); // TODO(michael): Make this actually represent the pointer width of target platform
 
     Builtin builtin;
-    Scope globalScope;
+    Scope *globalScope;
 
     llvm::LLVMContext &context;
     llvm::Module *module;
 
-    // A place for storing things
+    // The program is responsible for maintaining the lifetimes of scopes and things.
+    // The vectors below hold unique_ptrs which will free the memory for the scopes
+    // and things which have been allocated when the Program is freed.
     std::vector<std::unique_ptr<Thing>> things;
+    std::vector<std::unique_ptr<Scope>> scopes;
 
     Program(llvm::LLVMContext &context = llvm::getGlobalContext())
         : context(context),
@@ -105,10 +110,9 @@ struct Program {
         // Create the builtin objects and types
         builtin.init(*this);
 
-        globalScope = { NULL, std::unordered_map<istr, Thing*>() };
-
+        globalScope = scope(NULL);
         // Expose the builtin things to the cppl program
-#define exposeBuiltin(name) globalScope.addThing(intern(#name), builtin.name)
+#define exposeBuiltin(name) globalScope->addThing(intern(#name), builtin.name)
         exposeBuiltin(i8);
         exposeBuiltin(i16);
         exposeBuiltin(i32);
@@ -129,6 +133,13 @@ struct Program {
         std::unique_ptr<T> u = std::make_unique<T>( *this, args... );
         T *p = &*u;
         things.push_back(std::move(u));
+        return p;
+    }
+
+    Scope *scope(Scope *parent) {
+        auto u = std::make_unique<Scope>(parent);
+        Scope *p = &*u;
+        scopes.push_back(std::move(u));
         return p;
     }
 

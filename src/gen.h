@@ -27,7 +27,8 @@ struct FnGenState {
     llvm::Function *fn;
     llvm::IRBuilder<> builder;
 
-    FnGenState(Program &prgm) : prgm(prgm), scope(&prgm.globalScope), fn(NULL), builder(llvm::IRBuilder<>(prgm.context)) {};
+    FnGenState(Program &prgm, Scope *scope, llvm::Function *fn)
+        : prgm(prgm), scope(scope), fn(fn), builder(llvm::IRBuilder<>(prgm.context)) {};
 };
 
 // llvm::Type *get_type(Scope *scope, Type &ty);

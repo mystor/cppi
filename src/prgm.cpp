@@ -50,9 +50,9 @@ llvm::Function *llFromProto(Program &prgm, FunctionProto *proto) {
 
     std::vector<llvm::Type *> arg_types;
     for (auto arg : proto->arguments) {
-        arg_types.push_back(prgm.getType(&prgm.globalScope, arg.type)->llType());
+        arg_types.push_back(prgm.getType(prgm.globalScope, arg.type)->llType());
     }
-    auto ft = llvm::FunctionType::get(prgm.getType(&prgm.globalScope, proto->returnType)->llType(),
+    auto ft = llvm::FunctionType::get(prgm.getType(prgm.globalScope, proto->returnType)->llType(),
                                       arg_types, false);
 
     auto fn = llvm::Function::Create(ft, llvm::Function::ExternalLinkage, proto->name.data, prgm.module);
@@ -93,8 +93,7 @@ struct FunctionThing : ValueThing {
     void finalize() {
         llValue(); // Ensure that fn is set
 
-        FnGenState gs(prgm);
-        gs.fn = fn;
+        FnGenState gs(prgm, prgm.scope(prgm.globalScope), fn);
 
         // TODO(michael): Fix up the scope
 
@@ -173,19 +172,19 @@ void Program::addItem(Item &item) {
         virtual void visit(FunctionItem *item) {
             auto fthing = prgm.thing<FunctionThing>(&item->proto, &item->body);
 
-            prgm.globalScope.addThing(item->proto.name, fthing);
+            prgm.globalScope->addThing(item->proto.name, fthing);
         };
 
         virtual void visit(StructItem *item) {
             auto sdthing = prgm.thing<StructDefThing>(&item->args);
 
-            prgm.globalScope.addThing(item->name, sdthing);
+            prgm.globalScope->addThing(item->name, sdthing);
         };
 
         virtual void visit(FFIFunctionItem *item) {
             auto fthing = prgm.thing<FFIFunctionThing>(&item->proto);
 
-            prgm.globalScope.addThing(item->proto.name, fthing);
+            prgm.globalScope->addThing(item->proto.name, fthing);
         };
 
         virtual void visit(EmptyItem *) { /* pass */ };
