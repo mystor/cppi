@@ -76,6 +76,9 @@ public:
                                             st.prgm.builtin.boolean->asType())->asValue();
         }
     }
+    virtual void visit(MkExpr *expr) {
+        assert(false && "Unimplemented");
+    }
     virtual void visit(IdentExpr *expr) {
         Thing *AThing = st.scope->thing(expr->ident);
 
@@ -101,6 +104,12 @@ public:
 
         thing = st.prgm.thing<STVThing>(st.builder.CreateCall(callee, args, "callResult"),
                                         (TypeThing *)NULL /* TODO IMPLEMENT */);
+    }
+    virtual void visit(MthdCallExpr *expr) {
+        assert(false && "Unimplemented");
+    }
+    virtual void visit(MemberExpr *expr) {
+        assert(false && "Unimplemented");
     }
     virtual void visit(InfixExpr *expr) {
         auto lhs = genExpr(st, *expr->lhs)->asValue();

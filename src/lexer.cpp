@@ -29,6 +29,7 @@ Token Lexer::nextToken() {
         case ':': return Token(TOKEN_COLON);
         case ';': return Token(TOKEN_SEMI);
         case ',': return Token(TOKEN_COMMA);
+        case '.': return Token(TOKEN_DOT);
         case '=': return Token(TOKEN_EQ);
 
         case '+': return Token(TOKEN_PLUS);
@@ -92,7 +93,9 @@ Token Lexer::nextToken() {
                    first != '"' &&
                    first != ' ' &&
                    first != '\n' &&
-                   first != ';') {
+                   first != ';' &&
+                   first != ',' &&
+                   first != '.') {
                 // Record this character
                 chrs.push_back(first);
                 // Remove it from the input stream
@@ -119,6 +122,8 @@ Token Lexer::nextToken() {
                 return Token(TOKEN_TRUE);
             } else if (chrs == "false") {
                 return Token(TOKEN_FALSE);
+            } else if (chrs == "mk") {
+                return Token(TOKEN_MK);
             }
             return token;
         }
@@ -181,6 +186,9 @@ std::ostream& operator<<(std::ostream& os, TokenType n) {
     case TOKEN_COMMA: {
         os << "COMMA";
     } break;
+    case TOKEN_DOT: {
+        os << "DOT";
+    } break;
     case TOKEN_LET: {
         os << "LET";
     } break;
@@ -207,6 +215,9 @@ std::ostream& operator<<(std::ostream& os, TokenType n) {
     } break;
     case TOKEN_FALSE: {
         os << "FALSE";
+    } break;
+    case TOKEN_MK: {
+        os << "MK";
     } break;
     case TOKEN_IDENT: {
         os << "IDENT";

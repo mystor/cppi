@@ -62,6 +62,31 @@ FunctionProto parseFunctionProto(Lexer *lex) {
     return FunctionProto(name, arguments, returnType);
 }
 
+std::vector<std::unique_ptr<Expr>> parseCallArgs(Lexer *lex) {
+    // Parse some args!
+    lex->expect(TOKEN_LPAREN);
+    std::vector<std::unique_ptr<Expr>> args;
+    for (;;) {
+        if (lex->peek().type == TOKEN_RPAREN) {
+            break;
+        }
+        args.push_back(parseExpr(lex));
+        switch (lex->peek().type) {
+        case TOKEN_COMMA:
+            lex->eat();
+            continue;
+        case TOKEN_RPAREN:
+            break;
+        default:
+            assert(false && "Expected comma or rparen after argument");
+        }
+        break;
+    }
+    lex->expect(TOKEN_RPAREN);
+
+    return args;
+}
+
 std::unique_ptr<Item> parseItem(Lexer *lex) {
     auto firstType = lex->peek().type;
     switch (firstType) {
@@ -94,6 +119,24 @@ std::unique_ptr<Item> parseItem(Lexer *lex) {
         }
     } break;
 
+    case TOKEN_STRUCT: {
+        lex->eat();
+        auto name = lex->expect(TOKEN_IDENT).data.ident;
+        lex->expect(TOKEN_LBRACE);
+        std::vector<Argument> fields;
+        if (lex->peek().type != TOKEN_RBRACE) {
+            for (;;) {
+                fields.push_back(parseArgument(lex));
+                if (lex->peek().type == TOKEN_COMMA) {
+                    lex->eat();
+                } else { break; }
+            }
+        }
+        lex->expect(TOKEN_RBRACE);
+
+        return std::make_unique<StructItem>(name, fields);
+    } break;
+
     case TOKEN_SEMI: {
         lex->eat();
         return std::make_unique<EmptyItem>();
@@ -113,6 +156,7 @@ std::unique_ptr<Stmt> parseStmt(Lexer *lex) {
         auto var = lex->expect(TOKEN_IDENT);
         lex->expect(TOKEN_COLON);
         // For now, we're requiring types EVERYWHERE!
+        // TODO(michael): Allow absent types when it can be inferred
         auto type = parseType(lex);
         lex->expect(TOKEN_EQ);
         auto expr = parseExpr(lex);
@@ -196,6 +240,32 @@ std::unique_ptr<Expr> parseExprVal(Lexer *lex) {
         auto branches = parseIf(lex);
         return std::make_unique<IfExpr>(std::move(branches));
     }
+    case TOKEN_MK: {
+        lex->eat();
+        auto type = parseType(lex);
+        lex->expect(TOKEN_LBRACE);
+
+        std::vector<std::unique_ptr<Expr>> fields;
+        for (;;) {
+            if (lex->peek().type == TOKEN_RBRACE) {
+                break;
+            }
+            fields.push_back(parseExpr(lex));
+            switch (lex->peek().type) {
+            case TOKEN_COMMA:
+                lex->eat();
+                continue;
+            case TOKEN_RBRACE:
+                break;
+            default:
+                assert(false && "Expected comma or rbrace after argument");
+            }
+            break;
+        }
+        lex->expect(TOKEN_RBRACE);
+
+        return std::make_unique<MkExpr>(type, std::move(fields));
+    }
     default: {
         std::cerr << "Unexpected " << lex->peek() << ", not valid expr starter\n";
         assert(false && "Unrecognized expression");
@@ -208,30 +278,19 @@ std::unique_ptr<Expr> parseExprAccess(Lexer *lex) {
     for (;;) {
         switch (lex->peek().type) {
         case TOKEN_LPAREN: {
-            // Parse some args!
-            lex->eat();
-            std::vector<std::unique_ptr<Expr>> args;
-            for (;;) {
-                if (lex->peek().type == TOKEN_RPAREN) {
-                    break;
-                }
-                args.push_back(parseExpr(lex));
-                switch (lex->peek().type) {
-                case TOKEN_COMMA:
-                    lex->eat();
-                    continue;
-                case TOKEN_RPAREN:
-                    break;
-                default:
-                    assert(false && "Expected comma or rparen after argument");
-                }
-                break;
-            }
-            lex->expect(TOKEN_RPAREN);
+            auto args = parseCallArgs(lex);
             expr = std::make_unique<CallExpr>(std::move(expr), std::move(args));
-            continue;
-        }
-            // case TOKEN_DOT: // Property accessing!
+        } continue;
+        case TOKEN_DOT: {
+            lex->eat();
+            auto id = lex->expect(TOKEN_IDENT).data.ident;
+            if (lex->peek().type == TOKEN_LPAREN) {
+                auto args = parseCallArgs(lex);
+                expr = std::make_unique<MthdCallExpr>(std::move(expr), id, std::move(args));
+            } else {
+                expr = std::make_unique<MemberExpr>(std::move(expr), id);
+            }
+        } continue;
         default: break;
         }
         break;

@@ -1,5 +1,11 @@
 FFI fn putchar(chr: i32): i32;
 
+struct Foo {
+    a: i32,
+    b: i32,
+    c: string
+};
+
 fn print_hello(): boolean {
     putchar(72);
     putchar(101);

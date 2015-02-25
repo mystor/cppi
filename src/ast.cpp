@@ -72,6 +72,19 @@ std::ostream& BoolExpr::show(std::ostream& os) {
 void BoolExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
 
 
+std::ostream& MkExpr::show(std::ostream& os) {
+    os << "mk " << type << '{';
+    bool first = true;
+    for (auto i = fields.begin(); i != fields.end(); i++) {
+        if (first) first = false; else os << ", ";
+        os << **i;
+    }
+    return os << '}';
+}
+
+void MkExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
+
 std::ostream& CallExpr::show(std::ostream& os) {
     os << *callee << '(';
     bool first = true;
@@ -83,6 +96,26 @@ std::ostream& CallExpr::show(std::ostream& os) {
 }
 
 void CallExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
+
+std::ostream& MthdCallExpr::show(std::ostream& os) {
+    os << *object << '.' << symbol << '(';
+    bool first = true;
+    for (auto i = args.begin(); i != args.end(); i++) {
+        if (first) first = false; else os << ", ";
+        os << **i;
+    }
+    return os << ')';
+}
+
+void MthdCallExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
+
+
+std::ostream& MemberExpr::show(std::ostream& os) {
+    return os << *object << '.' << symbol;
+}
+
+void MemberExpr::accept(ExprVisitor &visitor) { visitor.visit(this); }
 
 
 std::ostream& IdentExpr::show(std::ostream& os) {

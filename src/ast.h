@@ -87,12 +87,43 @@ public:
     virtual void accept(ExprVisitor &visitor);
 };
 
+class MkExpr : public Expr {
+public:
+    MkExpr(Type type, std::vector<std::unique_ptr<Expr>> fields)
+        : type(type), fields(std::move(fields)) {};
+    Type type;
+    std::vector<std::unique_ptr<Expr>> fields;
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ExprVisitor &visitor);
+};
+
 class CallExpr : public Expr {
 public:
     CallExpr(std::unique_ptr<Expr> callee, std::vector<std::unique_ptr<Expr>> args)
         : callee(std::move(callee)), args(std::move(args)) {};
     std::unique_ptr<Expr> callee;
     std::vector<std::unique_ptr<Expr>> args;
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ExprVisitor &visitor);
+};
+
+class MthdCallExpr : public Expr {
+public:
+    MthdCallExpr(std::unique_ptr<Expr> object, istr symbol, std::vector<std::unique_ptr<Expr>> args)
+        : object(std::move(object)), symbol(symbol), args(std::move(args)) {};
+    std::unique_ptr<Expr> object;
+    istr symbol;
+    std::vector<std::unique_ptr<Expr>> args;
+    virtual std::ostream& show(std::ostream& os);
+    virtual void accept(ExprVisitor &visitor);
+};
+
+class MemberExpr : public Expr {
+public:
+    MemberExpr(std::unique_ptr<Expr> object, istr symbol)
+        : object(std::move(object)), symbol(symbol) {};
+    std::unique_ptr<Expr> object;
+    istr symbol;
     virtual std::ostream& show(std::ostream& os);
     virtual void accept(ExprVisitor &visitor);
 };
@@ -140,7 +171,10 @@ public:
     virtual void visit(StringExpr *expr) = 0;
     virtual void visit(IntExpr *expr) = 0;
     virtual void visit(BoolExpr *expr) = 0;
+    virtual void visit(MkExpr *expr) = 0;
     virtual void visit(CallExpr *expr) = 0;
+    virtual void visit(MthdCallExpr *expr) = 0;
+    virtual void visit(MemberExpr *expr) = 0;
     virtual void visit(IdentExpr *expr) = 0;
     virtual void visit(InfixExpr *expr) = 0;
     virtual void visit(IfExpr *expr) = 0;

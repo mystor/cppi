@@ -34,7 +34,10 @@ void Builtin::init(Program &p) {
 
     boolean = p.thing<PrimTypeThing>(llvm::Type::getInt1Ty(p.context));
 
-    std::vector<llvm::Type *> stringAttrs = { llvm::Type::getInt8PtrTy(p.context), llvm::Type::getIntNTy(p.context, p.pointerWidth) };
+    std::vector<llvm::Type *> stringAttrs = {
+        llvm::Type::getInt8PtrTy(p.context),
+        llvm::Type::getIntNTy(p.context, p.pointerWidth)
+    };
     auto stringTy = llvm::StructType::create(p.context, stringAttrs, "string");
 
     string = p.thing<PrimTypeThing>(stringTy);

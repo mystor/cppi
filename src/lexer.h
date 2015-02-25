@@ -30,6 +30,7 @@ enum TokenType {
     TOKEN_EQ,
     TOKEN_SEMI,
     TOKEN_COMMA,
+    TOKEN_DOT,
 
     // Keywords
     TOKEN_LET,
@@ -39,6 +40,7 @@ enum TokenType {
     TOKEN_STRUCT,
     TOKEN_IF,
     TOKEN_ELSE,
+    TOKEN_MK,
 
     // Booleans! WOO!
     TOKEN_TRUE,
