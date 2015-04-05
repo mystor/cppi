@@ -96,6 +96,11 @@ struct Program {
     llvm::LLVMContext &context;
     llvm::Module *module;
 
+    // The current state of the code generator
+    Scope *scope = NULL;
+    llvm::Function *fn = NULL;
+    llvm::IRBuilder<> builder;
+
     // The program is responsible for maintaining the lifetimes of scopes and things.
     // The vectors below hold unique_ptrs which will free the memory for the scopes
     // and things which have been allocated when the Program is freed.
@@ -104,13 +109,14 @@ struct Program {
 
     Program(llvm::LLVMContext &context = llvm::getGlobalContext())
         : context(context),
-          module(new llvm::Module("cppi_module", context)) {
+          module(new llvm::Module("cppi_module", context)),
+          builder(llvm::IRBuilder<>(context)) {
 
 
         // Create the builtin objects and types
         builtin.init(*this);
 
-        globalScope = scope(NULL);
+        globalScope = mkScope(NULL);
         // Expose the builtin things to the cppl program
 #define exposeBuiltin(name) globalScope->addThing(intern(#name), builtin.name)
         exposeBuiltin(i8);
@@ -136,7 +142,7 @@ struct Program {
         return p;
     }
 
-    Scope *scope(Scope *parent) {
+    Scope *mkScope(Scope *parent) {
         auto u = std::make_unique<Scope>(parent);
         Scope *p = &*u;
         scopes.push_back(std::move(u));

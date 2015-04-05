@@ -21,6 +21,29 @@ struct PrimTypeThing : public TypeThing {
     }
 };
 
+struct VarThing : public ValueThing {
+    Program &prgm;
+    llvm::Value *ptr;
+    TypeThing *type;
+
+    VarThing(Program &prgm, llvm::Value *ptr, TypeThing *type) : prgm(prgm), ptr(ptr), type(type) {};
+
+    ValueThing *asValue() { return this; }
+
+    llvm::Value *llValue() {
+        return prgm.builder.CreateLoad(ptr);
+    }
+
+    TypeThing *typeOf() {
+        return type;
+    }
+
+    void print(llvm::raw_ostream &os) {
+        os << "VarThing(" << *ptr << "): ";
+        type->print(os);
+    }
+};
+
 // Initialize the builtin object with a bunch or primitive types
 void Builtin::init(Program &p) {
     i8 = p.thing<PrimTypeThing>(llvm::Type::getInt8Ty(p.context));
@@ -45,7 +68,7 @@ void Builtin::init(Program &p) {
 
 
 llvm::Function *llFromProto(Program &prgm, FunctionProto *proto) {
-    std::cout << "** Building function " << proto->name << "\n";
+    // std::cout << "** Building function " << proto->name << "\n";
     // Building the function prototype
 
     std::vector<llvm::Type *> arg_types;
@@ -93,15 +116,26 @@ struct FunctionThing : ValueThing {
     void finalize() {
         llValue(); // Ensure that fn is set
 
-        FnGenState gs(prgm, prgm.scope(prgm.globalScope), fn);
-
-        // TODO(michael): Fix up the scope
+        // Set up program state to be pointing to this function
+        prgm.fn = fn;
+        prgm.scope = prgm.mkScope(prgm.globalScope);
 
         auto bb = llvm::BasicBlock::Create(prgm.context, "entry", fn);
-        gs.builder.SetInsertPoint(bb);
+        prgm.builder.SetInsertPoint(bb);
+
+        // TODO(michael): Fix up the scope
+        unsigned idx = 0;
+        for (auto ai = fn->arg_begin(); idx != proto->arguments.size(); ++ai, ++idx) {
+            // Allocate room for the argument
+            auto alloca = prgm.builder.CreateAlloca(ai->getType());
+            prgm.builder.CreateStore(ai, alloca);
+
+            // Add the argument to the scope
+            prgm.scope->addThing(proto->arguments[idx].name, prgm.thing<VarThing>(alloca, (TypeThing *)NULL));
+        }
 
         for (auto &stmt : *body) {
-            genStmt(gs, *stmt);
+            genStmt(prgm, *stmt);
         }
 
         llvm::verifyFunction(*fn);

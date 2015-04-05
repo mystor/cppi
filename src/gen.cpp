@@ -27,14 +27,14 @@ struct STVThing : public ValueThing {
 void genItem(Program &prgm, Item &item);
 
 // Generate an if
-ValueThing *genIf(FnGenState &st, Branch *branches, size_t count);
+ValueThing *genIf(Program &prgm, Branch *branches, size_t count);
 
 class ExprGen : public ExprVisitor {
-    FnGenState &st;
+    Program &prgm;
 public:
     ValueThing *thing = NULL;
 
-    ExprGen(FnGenState &st) : st(st) {}
+    ExprGen(Program &prgm) : prgm(prgm) {}
 
     virtual void visit(StringExpr *expr) {
         // Create the string literal as a global string pointer
@@ -42,45 +42,46 @@ public:
         // is OK for us, because we want our code to support sending data
         // (like strings) to c programs easily
 
-        auto data = st.builder.CreateGlobalStringPtr(expr->value.data, "stringLiteral");
-        auto length = llvm::ConstantInt::get(llvm::IntegerType::get(st.prgm.context, st.prgm.pointerWidth), expr->value.length);
+        auto data = prgm.builder.CreateGlobalStringPtr(expr->value.data, "stringLiteral");
+        auto length = llvm::ConstantInt::get(llvm::IntegerType::get(prgm.context, prgm.pointerWidth), expr->value.length);
 
         // TODO(michael): This should internally probably use the generic slice type,
         // once we get to that point in terms of compiler construction
-        llvm::StructType *stringTy = llvm::cast<llvm::StructType>(st.prgm.builtin.string->asType()->llType());
+        llvm::StructType *stringTy = llvm::cast<llvm::StructType>(prgm.builtin.string->asType()->llType());
 
-        // Allocate the string struct, and fill it with data - This allocal Should_ be optimized
+        // Allocate the string struct, and fill it with data - This allocal _should_ be optimized
         // out by the compiler at some point
-        auto stringStruct = st.builder.CreateAlloca(stringTy);
-        auto stringDataPtr = st.builder.CreateConstInBoundsGEP2_32(stringStruct, 0, 0);
-        auto stringLenPtr = st.builder.CreateConstInBoundsGEP2_32(stringStruct, 0, 1);
+        auto stringStruct = prgm.builder.CreateAlloca(stringTy);
+        auto stringDataPtr = prgm.builder.CreateConstInBoundsGEP2_32(stringStruct, 0, 0);
+        auto stringLenPtr = prgm.builder.CreateConstInBoundsGEP2_32(stringStruct, 0, 1);
 
-        st.builder.CreateStore(data, stringDataPtr);
-        st.builder.CreateStore(length, stringLenPtr);
+        prgm.builder.CreateStore(data, stringDataPtr);
+        prgm.builder.CreateStore(length, stringLenPtr);
 
         // Get it back into value-form
-        thing = st.prgm.thing<STVThing>(st.builder.CreateLoad(stringStruct),
-                                        st.prgm.builtin.string->asType())->asValue();
+        thing = prgm.thing<STVThing>(prgm.builder.CreateLoad(stringStruct),
+                                        prgm.builtin.string->asType())->asValue();
     }
     virtual void visit(IntExpr *expr) {
         // TODO: Not all ints are 32 bits
-        thing = st.prgm.thing<STVThing>(llvm::ConstantInt::get(llvm::IntegerType::get(st.prgm.context, 32), expr->value),
-                                        st.prgm.builtin.i32->asType())->asValue();
+        thing = prgm.thing<STVThing>(llvm::ConstantInt::get(llvm::IntegerType::get(prgm.context, 32), expr->value),
+                                        prgm.builtin.i32->asType())->asValue();
     }
     virtual void visit(BoolExpr *expr) {
         if (expr->value) {
-            thing = st.prgm.thing<STVThing>(llvm::ConstantInt::getTrue(st.prgm.context),
-                                            st.prgm.builtin.boolean->asType())->asValue();
+            thing = prgm.thing<STVThing>(llvm::ConstantInt::getTrue(prgm.context),
+                                            prgm.builtin.boolean->asType())->asValue();
         } else {
-            thing = st.prgm.thing<STVThing>(llvm::ConstantInt::getFalse(st.prgm.context),
-                                            st.prgm.builtin.boolean->asType())->asValue();
+            thing = prgm.thing<STVThing>(llvm::ConstantInt::getFalse(prgm.context),
+                                            prgm.builtin.boolean->asType())->asValue();
         }
     }
     virtual void visit(MkExpr *expr) {
+
         assert(false && "Unimplemented");
     }
     virtual void visit(IdentExpr *expr) {
-        Thing *aThing = st.scope->thing(expr->ident);
+        Thing *aThing = prgm.scope->thing(expr->ident);
 
         assert(aThing != NULL);
 
@@ -88,13 +89,13 @@ public:
         assert(aThing->asValue());
     }
     virtual void visit(CallExpr *expr) {
-        auto callee = genExpr(st, *expr->callee)->asValue()->llValue();
+        auto callee = genExpr(prgm, *expr->callee)->asValue()->llValue();
 
         // TODO(michael): assert(callee->isCallable());
 
         std::vector<llvm::Value *> args;
         for (auto &arg : expr->args) {
-            auto earg = genExpr(st, *arg)->asValue();
+            auto earg = genExpr(prgm, *arg)->asValue();
             assert(earg != NULL);
 
             // TODO(michael): Check types match that of function call
@@ -102,7 +103,7 @@ public:
             args.push_back(earg->llValue());
         }
 
-        thing = st.prgm.thing<STVThing>(st.builder.CreateCall(callee, args, "callResult"),
+        thing = prgm.thing<STVThing>(prgm.builder.CreateCall(callee, args, "callResult"),
                                         (TypeThing *)NULL /* TODO IMPLEMENT */);
     }
     virtual void visit(MthdCallExpr *expr) {
@@ -112,68 +113,66 @@ public:
         assert(false && "Unimplemented");
     }
     virtual void visit(InfixExpr *expr) {
-        auto lhs = genExpr(st, *expr->lhs)->asValue();
-        auto rhs = genExpr(st, *expr->rhs)->asValue();
+        auto lhs = genExpr(prgm, *expr->lhs)->asValue();
+        auto rhs = genExpr(prgm, *expr->rhs)->asValue();
 
         llvm::Value *value;
 
         switch (expr->op) {
         case OPERATION_PLUS: {
-            value = st.builder.CreateAdd(lhs->llValue(), rhs->llValue(), "addResult");
+            value = prgm.builder.CreateAdd(lhs->llValue(), rhs->llValue(), "addResult");
         } break;
         case OPERATION_MINUS: {
-            value = st.builder.CreateSub(lhs->llValue(), rhs->llValue(), "subResult");
+            value = prgm.builder.CreateSub(lhs->llValue(), rhs->llValue(), "subResult");
         } break;
         case OPERATION_TIMES: {
-            value = st.builder.CreateMul(lhs->llValue(), rhs->llValue(), "mulResult");
+            value = prgm.builder.CreateMul(lhs->llValue(), rhs->llValue(), "mulResult");
         } break;
         case OPERATION_DIVIDE: {
             // TODO: Signed vs Unsigned. Right now only unsigned values
-            value = st.builder.CreateUDiv(lhs->llValue(), rhs->llValue(), "divResult");
+            value = prgm.builder.CreateUDiv(lhs->llValue(), rhs->llValue(), "divResult");
         } break;
         case OPERATION_MODULO: {
             // TODO: Signed vs Unsigned. Right now only unsigned values
-            value = st.builder.CreateURem(lhs->llValue(), rhs->llValue(), "modResult");
+            value = prgm.builder.CreateURem(lhs->llValue(), rhs->llValue(), "modResult");
         } break;
         }
     }
     virtual void visit(IfExpr *expr) {
-        thing = genIf(st, expr->branches.data(), expr->branches.size());
+        thing = genIf(prgm, expr->branches.data(), expr->branches.size());
     }
 };
 
 
 
 class StmtGen : public StmtVisitor {
-    FnGenState &st;
+    Program &prgm;
 public:
-    StmtGen(FnGenState &st) : st(st) {}
+    StmtGen(Program &prgm) : prgm(prgm) {}
 
     ValueThing *thing = NULL;
 
     virtual void visit(DeclarationStmt *stmt) {
-        auto alloca = st.builder.CreateAlloca(st.prgm.getType(st.scope, stmt->type)->llType(),
+        auto alloca = prgm.builder.CreateAlloca(prgm.getType(prgm.scope, stmt->type)->llType(),
                                                nullptr, stmt->name.data);
 
         // TODO: Allow undefined variables
-        auto expr = genExpr(st, *stmt->value);
-        std::cout << "HERE" << "\n";
-        st.builder.CreateStore(expr->llValue(), alloca);
-        std::cout << "THERE" << "\n";
+        auto expr = genExpr(prgm, *stmt->value);
+        prgm.builder.CreateStore(expr->llValue(), alloca);
 
-        st.scope->addThing(stmt->name,
-                           st.prgm.thing<STVThing>(alloca, expr->typeOf()));
+        prgm.scope->addThing(stmt->name,
+                           prgm.thing<STVThing>(alloca, expr->typeOf()));
 
         thing = NULL;
     }
     virtual void visit(ExprStmt *stmt) {
-        thing = genExpr(st, *stmt->expr);
+        thing = genExpr(prgm, *stmt->expr);
     }
     virtual void visit(ReturnStmt *stmt) {
         if (stmt->value != nullptr) {
-            st.builder.CreateRet(genExpr(st, *stmt->value)->llValue());
+            prgm.builder.CreateRet(genExpr(prgm, *stmt->value)->llValue());
         } else {
-            st.builder.CreateRetVoid();
+            prgm.builder.CreateRetVoid();
         }
 
         thing = NULL;
@@ -183,39 +182,39 @@ public:
     }
 };
 
-ValueThing *genIf(FnGenState &st, Branch *branches, size_t count) {
+ValueThing *genIf(Program &prgm, Branch *branches, size_t count) {
     if (count > 0) {
         if (branches[0].cond != NULL) {
-            auto cons = llvm::BasicBlock::Create(st.prgm.context, "ifCons", st.fn);
-            auto alt = llvm::BasicBlock::Create(st.prgm.context, "ifAlt", st.fn);
-            auto after = llvm::BasicBlock::Create(st.prgm.context, "afterIf", st.fn);
+            auto cons = llvm::BasicBlock::Create(prgm.context, "ifCons", prgm.fn);
+            auto alt = llvm::BasicBlock::Create(prgm.context, "ifAlt", prgm.fn);
+            auto after = llvm::BasicBlock::Create(prgm.context, "afterIf", prgm.fn);
 
-            auto cond = genExpr(st, *branches[0].cond);
+            auto cond = genExpr(prgm, *branches[0].cond);
 
-            st.builder.CreateCondBr(cond->llValue(), cons, alt);
+            prgm.builder.CreateCondBr(cond->llValue(), cons, alt);
 
             // Generate the body
-            st.builder.SetInsertPoint(cons);
+            prgm.builder.SetInsertPoint(cons);
             ValueThing *consVal = NULL;
             for (auto &stmt : branches[0].body) {
-                consVal = genStmt(st, *stmt);
+                consVal = genStmt(prgm, *stmt);
             }
-            st.builder.CreateBr(after);
+            prgm.builder.CreateBr(after);
 
             // Generate the else expression
-            st.builder.SetInsertPoint(alt);
-            ValueThing *altVal = genIf(st, branches + 1, count - 1); // TODO: Eww, pointer math
-            st.builder.CreateBr(after);
+            prgm.builder.SetInsertPoint(alt);
+            ValueThing *altVal = genIf(prgm, branches + 1, count - 1); // TODO: Eww, pointer math
+            prgm.builder.CreateBr(after);
 
             // Generate the after block
-            st.builder.SetInsertPoint(after);
+            prgm.builder.SetInsertPoint(after);
             if (consVal != NULL && altVal != NULL) {
                 assert(consVal->typeOf() == altVal->typeOf() && "Cons val and Alt val need the same type");
-                auto phiNode = st.builder.CreatePHI(consVal->typeOf()->llType(), 2, "ifValue");
+                auto phiNode = prgm.builder.CreatePHI(consVal->typeOf()->llType(), 2, "ifValue");
                 phiNode->addIncoming(consVal->llValue(), cons);
                 phiNode->addIncoming(altVal->llValue(), alt);
 
-                return st.prgm.thing<STVThing>(phiNode,
+                return prgm.thing<STVThing>(phiNode,
                                                consVal->typeOf());
             } else {
                 assert(consVal == altVal); // == NULL
@@ -227,7 +226,7 @@ ValueThing *genIf(FnGenState &st, Branch *branches, size_t count) {
             // The else branch. It is unconditional
             ValueThing *consVal = NULL;
             for (auto &stmt : branches[0].body) {
-                consVal = genStmt(st, *stmt);
+                consVal = genStmt(prgm, *stmt);
             }
             return consVal;
         }
@@ -236,8 +235,8 @@ ValueThing *genIf(FnGenState &st, Branch *branches, size_t count) {
     }
 }
 
-inline ValueThing *genExpr(FnGenState &st, Expr &expr) {
-    ExprGen eg(st);
+inline ValueThing *genExpr(Program &prgm, Expr &expr) {
+    ExprGen eg(prgm);
     expr.accept(eg);
 
     // if (eg.thing == NULL)
@@ -245,8 +244,8 @@ inline ValueThing *genExpr(FnGenState &st, Expr &expr) {
     return eg.thing;
 }
 
-inline ValueThing *genStmt(FnGenState &st, Stmt &stmt) {
-    StmtGen sg(st);
+inline ValueThing *genStmt(Program &prgm, Stmt &stmt) {
+    StmtGen sg(prgm);
     stmt.accept(sg);
     return sg.thing;
 }
